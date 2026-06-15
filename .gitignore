@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+uploads/
+outputs/
+jobs.db
+*.csv
+venv/
+.venv/
+.idea/
