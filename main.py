@@ -1,4 +1,5 @@
 import uuid
+import csv
 import json
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
@@ -53,9 +54,11 @@ async def process_batch(
         background_tasks: BackgroundTasks,
         files: list[UploadFile] = File(...)
 ):
-    # save all uploads to a job-specific folder
-    batch_id = str(uuid.uuid4())
-    batch_dir = UPLOAD_DIR / batch_id
+    # Create job record NOW with the ID you'll return to client
+    job_id = str(uuid.uuid4())          # ← single source of truth
+    jobs.create_job(job_id)              # ← store immediately
+
+    batch_dir = UPLOAD_DIR / job_id      # ← use job_id for folder (optional but consistent)
     batch_dir.mkdir()
 
     for file in files:
@@ -63,11 +66,10 @@ async def process_batch(
         with open(file_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-    # start processing in background, return job_id immediately
-    background_tasks.add_task(processor.run_batch, str(batch_dir))
+    # Pass the SAME job_id to the background task
+    background_tasks.add_task(processor.run_batch, str(batch_dir), job_id)
 
-    return {"job_id": batch_id, "message": "Batch started"}
-
+    return {"job_id": job_id, "message": "Batch started"}
 
 # ─── STATUS ──────────────────────────────────────────────────
 @app.get("/status/{job_id}")
@@ -83,18 +85,32 @@ def get_status(job_id: str):
 def export_csv(job_id: str):
     row = jobs.get_job(job_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(404, "Job not found")
     if row["status"] != "done":
-        raise HTTPException(status_code=400, detail="Job not finished yet")
+        raise HTTPException(400, "Job not finished yet")
 
-    results = json.loads(row["results"])
-    errors = []  # errors stored separately in a real v2
-
+    results = json.loads(row["results"]) if row["results"] else []
     output_path = str(OUTPUT_DIR / f"{job_id}.csv")
-    convertor.convert_to_csv(results, errors, output_path)
 
-    return FileResponse(
-        output_path,
-        media_type="text/csv",
-        filename=f"invoices_{job_id}.csv"
-    )
+    # Always generate CSV even if no results
+    convertor.convert_to_csv(results, [], output_path)  # pass empty errors list
+
+    if not Path(output_path).exists():
+        # fallback: create a minimal CSV with headers only
+        with open(output_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["filename", "vendor", "total", "category", "confidence"])
+            writer.writeheader()
+
+    return FileResponse(output_path, media_type="text/csv", filename=f"invoices_{job_id}.csv")
+
+
+@app.get("/results/{job_id}")
+def get_results(job_id: str):
+    row = jobs.get_job(job_id)
+    if not row:
+        raise HTTPException(404, "Job not found")
+    if row["status"] != "done":
+        raise HTTPException(400, "Job not finished yet")
+
+    results = json.loads(row["results"]) if row["results"] else []
+    return {"job_id": job_id, "results": results}

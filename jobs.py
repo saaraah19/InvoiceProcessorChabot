@@ -44,8 +44,8 @@ def update_status(job_id: str, status: str):
         conn.commit()
 
 def save_results(job_id: str, results: list):
-    # Pydantic objects → JSON string for SQLite storage
-    results_json = json.dumps([r.model_dump() for r in results])
+    # results is already a list of dicts (from .model_dump())
+    results_json = json.dumps(results)
     with get_connection() as conn:
         conn.execute(
             "UPDATE jobs SET results = ? WHERE job_id = ?",

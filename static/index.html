@@ -232,7 +232,7 @@
     </div>
   </div>
 
-  <script>
+<script>
     const state = { files: [], jobId: null, polling: null, results: [] }
     const THRESHOLD = 0.75, FLOOR = 0.2
     const $ = id => document.getElementById(id)
@@ -245,131 +245,146 @@
     dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over') })
     dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'))
     dz.addEventListener('drop', e => {
-      e.preventDefault()
-      dz.classList.remove('drag-over')
-      setFiles([...e.dataTransfer.files])
+        e.preventDefault()
+        dz.classList.remove('drag-over')
+        setFiles([...e.dataTransfer.files])
     })
 
     function setFiles(files) {
-      state.files = files
-      $('file-list').innerHTML = files.map(f =>
-        `<span class="file-chip"><i class="ti ti-file"></i>${f.name}</span>`
-      ).join('')
-      $('btn-process').style.display = files.length ? 'flex' : 'none'
+        state.files = files
+        $('file-list').innerHTML = files.map(f =>
+            `<span class="file-chip"><i class="ti ti-file"></i>${f.name}</span>`
+        ).join('')
+        $('btn-process').style.display = files.length ? 'flex' : 'none'
     }
 
     async function handleProcess() {
-      hide('section-upload')
-      show('section-processing')
-      if (state.files.length === 1) await processSingle()
-      else await processBatch()
+        hide('section-upload')
+        show('section-processing')
+        if (state.files.length === 1) await processSingle()
+        else await processBatch()
     }
 
     async function processSingle() {
-      $('processing-status').textContent = 'Extracting invoice data...'
-      const form = new FormData()
-      form.append('file', state.files[0])
-      try {
-        const res = await fetch('/process', { method: 'POST', body: form })
-        if (!res.ok) throw new Error(await res.text())
-        state.results = [await res.json()]
-        showResults()
-      } catch (e) { showError(e.message) }
+        $('processing-status').textContent = 'Extracting invoice data...'
+        const form = new FormData()
+        form.append('file', state.files[0])
+        try {
+            const res = await fetch('/process', { method: 'POST', body: form })
+            if (!res.ok) throw new Error(await res.text())
+            state.results = [await res.json()]
+            showResults()
+        } catch (e) { showError(e.message) }
     }
 
     async function processBatch() {
-      $('processing-status').textContent = `Uploading ${state.files.length} files...`
-      const form = new FormData()
-      state.files.forEach(f => form.append('files', f))
-      try {
-        const res = await fetch('/batch', { method: 'POST', body: form })
-        if (!res.ok) throw new Error(await res.text())
-        const { job_id } = await res.json()
-        state.jobId = job_id
-        pollStatus()
-      } catch (e) { showError(e.message) }
+        $('processing-status').textContent = `Uploading ${state.files.length} files...`
+        const form = new FormData()
+        state.files.forEach(f => form.append('files', f))
+        try {
+            const res = await fetch('/batch', { method: 'POST', body: form })
+            if (!res.ok) throw new Error(await res.text())
+            const { job_id } = await res.json()
+            state.jobId = job_id
+            pollStatus()
+        } catch (e) { showError(e.message) }
     }
 
     function pollStatus() {
-      state.polling = setInterval(async () => {
-        try {
-          const { status } = await (await fetch(`/status/${state.jobId}`)).json()
-          $('processing-status').textContent = `Processing batch · ${status}`
-          if (status === 'done') { clearInterval(state.polling); showResults() }
-          else if (status === 'failed') { clearInterval(state.polling); showError('Batch failed — download CSV for error details') }
-        } catch (e) { clearInterval(state.polling); showError(e.message) }
-      }, 2000)
+        state.polling = setInterval(async () => {
+            try {
+                const statusRes = await fetch(`/status/${state.jobId}`)
+                if (!statusRes.ok) throw new Error('Status check failed')
+                const { status } = await statusRes.json()
+                $('processing-status').textContent = `Processing batch · ${status}`
+                if (status === 'done') {
+                    clearInterval(state.polling)
+                    // --- Fetch the actual results ---
+                    const resultsRes = await fetch(`/results/${state.jobId}`)
+                    if (!resultsRes.ok) throw new Error('Could not fetch results')
+                    const { results } = await resultsRes.json()
+                    state.results = results   // array of invoice dicts
+                    showResults()
+                } else if (status === 'failed') {
+                    clearInterval(state.polling)
+                    showError('Batch failed — check CSV for error details')
+                }
+            } catch (e) {
+                clearInterval(state.polling)
+                showError(e.message)
+            }
+        }, 2000)
     }
 
     function badge(score) {
-      const pct = Math.round(score * 100)
-      if (score >= THRESHOLD) return `<span class="badge badge-ok"><i class="ti ti-check"></i>${pct}%</span>`
-      if (score >= FLOOR) return `<span class="badge badge-warn"><i class="ti ti-alert-triangle"></i>${pct}%</span>`
-      return `<span class="badge badge-err"><i class="ti ti-x"></i>${pct}%</span>`
+        const pct = Math.round(score * 100)
+        if (score >= THRESHOLD) return `<span class="badge badge-ok"><i class="ti ti-check"></i>${pct}%</span>`
+        if (score >= FLOOR) return `<span class="badge badge-warn"><i class="ti ti-alert-triangle"></i>${pct}%</span>`
+        return `<span class="badge badge-err"><i class="ti ti-x"></i>${pct}%</span>`
     }
 
     function showResults() {
-      hide('section-processing')
-      show('section-results')
-      let approved = 0, review = 0, errors = 0
-      const rows = state.results.map(r => {
-        if (r.error) {
-          errors++
-          return `<tr><td title="${r.filename||''}">${r.filename||'—'}</td><td colspan="3" style="color:var(--text-danger)">${r.error}</td><td>—</td></tr>`
-        }
-        const s = r.confidence || 0
-        if (s >= THRESHOLD) approved++
-        else if (s >= FLOOR) review++
-        else errors++
-        const total = r.total_amount_due != null
-          ? `${r.currency || ''} ${Number(r.total_amount_due).toFixed(2)}`
-          : '—'
-        return `<tr>
-          <td title="${r.filename||''}">${r.filename||'—'}</td>
-          <td>${r.vendor_name||'—'}</td>
-          <td>${total}</td>
-          <td>${r.category||'—'}</td>
-          <td>${badge(s)}</td>
-        </tr>`
-      }).join('')
-      $('results-body').innerHTML = rows ||
-        '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:2rem">No results</td></tr>'
-      $('count-approved').textContent = approved
-      $('count-review').textContent = review
-      $('count-errors').textContent = errors
+        hide('section-processing')
+        show('section-results')
+        let approved = 0, review = 0, errors = 0
+        const rows = state.results.map(r => {
+            // If an error was stored (e.g., file processing error)
+            if (r.error) {
+                errors++
+                return `<tr><td title="${r.filename||''}">${r.filename||'—'}</td><td colspan="3" style="color:var(--text-danger)">${r.error}</td><td>—</td></tr>`
+            }
+            const s = r.confidence || 0
+            if (s >= THRESHOLD) approved++
+            else if (s >= FLOOR) review++
+            else errors++
+            const total = r.total_amount_due != null
+                ? `${r.currency || ''} ${Number(r.total_amount_due).toFixed(2)}`
+                : '—'
+            return `<tr>
+                <td title="${r.filename||''}">${r.filename||'—'}</td>
+                <td>${r.vendor_name||'—'}</td>
+                <td>${total}</td>
+                <td>${r.category||'—'}</td>
+                <td>${badge(s)}</td>
+            </tr>`
+        }).join('')
+        $('results-body').innerHTML = rows ||
+            '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:2rem">No results</td></tr>'
+        $('count-approved').textContent = approved
+        $('count-review').textContent = review
+        $('count-errors').textContent = errors
     }
 
     async function handleDownload() {
-      if (state.jobId) {
-        window.location.href = `/export/${state.jobId}`
-      } else if (state.results.length) {
-        const keys = Object.keys(state.results[0])
-        const csv = [
-          keys.join(','),
-          ...state.results.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))
-        ].join('\n')
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-        a.download = 'invoice_export.csv'
-        a.click()
-      }
+        if (state.jobId) {
+            window.location.href = `/export/${state.jobId}`
+        } else if (state.results.length) {
+            const keys = Object.keys(state.results[0])
+            const csv = [
+                keys.join(','),
+                ...state.results.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))
+            ].join('\n')
+            const a = document.createElement('a')
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+            a.download = 'invoice_export.csv'
+            a.click()
+        }
     }
 
     function showError(msg) {
-      hide('section-processing')
-      show('section-upload')
-      alert('Error: ' + msg)
+        hide('section-processing')
+        show('section-upload')
+        alert('Error: ' + msg)
     }
 
     function handleReset() {
-      state.files = []; state.jobId = null; state.results = []
-      if (state.polling) clearInterval(state.polling)
-      $('file-list').innerHTML = ''
-      $('btn-process').style.display = 'none'
-      $('results-body').innerHTML = ''
-      hide('section-results')
-      show('section-upload')
+        state.files = []; state.jobId = null; state.results = []
+        if (state.polling) clearInterval(state.polling)
+        $('file-list').innerHTML = ''
+        $('btn-process').style.display = 'none'
+        $('results-body').innerHTML = ''
+        hide('section-results')
+        show('section-upload')
     }
-  </script>
-</body>
+</script></body>
 </html>

@@ -1,27 +1,27 @@
-"""
-generator.py — Generic Gemini client. --- Talks to GEMINI
-Knows nothing about invoices. Accepts any contents + schema, returns a parsed Pydantic object.
-"""
-
-
 import os
 import re
 import time
 import logging
+from typing import TypeVar, Type
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 from config import GEMINI_MODEL_NAME, MAX_RETRIES
+
 load_dotenv()
 logger = logging.getLogger(__name__)
 
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-def call_gemini(contents: list, response_schema) -> object:
+# Define a type variable that can represent any Pydantic model class
+T = TypeVar('T')
+
+def call_gemini(contents: list, response_schema: Type[T]) -> T:
     """
     Send contents to Gemini with a structured response schema.
     Retries on 429 (rate limit) and 503 (server overload).
-    Returns a parsed Pydantic object on success, raises RuntimeError after max retries.
+    Returns a parsed Pydantic object of type `response_schema` on success,
+    raises RuntimeError after max retries.
     """
     config = types.GenerateContentConfig(
         temperature=0.0,
@@ -36,22 +36,25 @@ def call_gemini(contents: list, response_schema) -> object:
                 contents=contents,
                 config=config,
             )
-            return response.parsed  # ← the link to your Pydantic class
+            # response.parsed is an instance of response_schema (T)
+            return response.parsed  # type: ignore  # noqa
 
         except Exception as e:
             error_str = str(e)
 
             if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
                 match = re.search(r'retry in (\d+)s', error_str)
-                wait = int(match.group(1)) + 3 if match else 15
+                wait = min(5 * (2 ** (attempt - 1)), 60)  # 5, 10, 20, 40, 60, 60 seconds
                 logger.warning(f"Rate limited — waiting {wait}s (attempt {attempt}/{MAX_RETRIES})")
                 time.sleep(wait)
 
             elif "503" in error_str or "UNAVAILABLE" in error_str:
-                logger.warning(f"Service unavailable — waiting 10s (attempt {attempt}/{MAX_RETRIES})")
-                time.sleep(10)
+                wait = min(5 * (2 ** (attempt - 1)), 60)  # 5, 10, 20, 40, 60, 60 seconds
+                logger.warning(f"Rate limited — waiting {wait}s (attempt {attempt}/{MAX_RETRIES})")
+                time.sleep(wait)
+
 
             else:
-                raise  # anything else (auth error, bad request) → fail immediately, don't retry
+                raise
 
     raise RuntimeError(f"Gemini call failed after {MAX_RETRIES} attempts")
