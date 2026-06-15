@@ -1,6 +1,4 @@
 import csv
-import json
-from config import CONFIDENCE_THRESHOLD
 from typing import List, Dict, Any
 
 WRONG_FILE_FLOOR = 0.2  # below this = wrong file entirely, not just low confidence

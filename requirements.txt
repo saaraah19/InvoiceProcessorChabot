@@ -2,12 +2,8 @@ fastapi
 uvicorn[standard]
 google-genai
 python-dotenv
-langchain
-langchain-community
-chromadb
-rank-bm25
-flashrank
 python-multipart
 httpx
 pydantic
 slowapi
+openpyxl

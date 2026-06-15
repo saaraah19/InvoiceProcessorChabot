@@ -1,22 +1,16 @@
-import uuid
-import csv
-import json
+import uuid ,csv, json , jobs,os
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Request
-import shutil
-import jobs
-import processor
-import convertor
+import shutil,processor,convertor ,openpyxl
 from config import GEMINI_MODEL_NAME
 from jobs import init_db
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-import openpyxl
-from openpyxl.styles import Font, PatternFill
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from fastapi.responses import FileResponse
+from config import GEMINI_MODEL_NAME, CONFIDENCE_THRESHOLD
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -32,6 +26,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 @app.on_event("startup")
 def startup():
     init_db()  # creates the SQLite table if it doesn't exist
+    if not os.environ.get("GEMINI_API_KEY"):
+        raise RuntimeError("GEMINI_API_KEY environment variable is not set")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -44,7 +40,7 @@ def root():
 @app.post("/process")
 @limiter.limit("10/minute")
 async def process_single(request: Request, file: UploadFile = File(...)):
-    file_path = UPLOAD_DIR / file.filename
+    file_path = UPLOAD_DIR / Path(file.filename).name
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
     try:
@@ -71,7 +67,7 @@ async def process_batch(
     batch_dir = UPLOAD_DIR / job_id
     batch_dir.mkdir()
     for file in files:
-        file_path = batch_dir / file.filename
+        file_path = batch_dir / Path(file.filename).name
         with open(file_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
     background_tasks.add_task(processor.run_batch, str(batch_dir), job_id)
@@ -119,7 +115,8 @@ def get_results(job_id: str):
         raise HTTPException(400, "Job not finished yet")
 
     results = json.loads(row["results"]) if row["results"] else []
-    return {"job_id": job_id, "results": results}
+    errors = json.loads(row["errors"]) if row["errors"] else []
+    return {"job_id": job_id, "results": results, "errors": errors}
 
 @app.get("/progress/{job_id}")
 def get_progress(job_id: str):
@@ -200,8 +197,8 @@ def export_excel(job_id: str):
             })
 
     # Split meaningful invoices by confidence
-    approved = [inv for inv in meaningful if inv.get("confidence", 0) >= 0.75]
-    review = [inv for inv in meaningful if inv.get("confidence", 0) < 0.75]
+    approved = [inv for inv in meaningful if inv.get("confidence", 0) >= CONFIDENCE_THRESHOLD]
+    review = [inv for inv in meaningful if inv.get("confidence", 0) < CONFIDENCE_THRESHOLD]
 
     # Create Excel workbook
     wb = openpyxl.Workbook()
@@ -259,3 +256,5 @@ def export_excel(job_id: str):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=f"invoices_{job_id}.xlsx"
     )
+
+app = ProxyHeadersMiddleware(app, trusted_hosts="*")

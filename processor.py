@@ -1,4 +1,5 @@
 import hashlib
+import shutil
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -56,5 +57,6 @@ def run_batch(folder_path: str, job_id: str) -> None:   # ← add job_id paramet
     except Exception as e:
         jobs.update_status(job_id, "failed")
         raise   # or log the error
-
+    finally:
+        shutil.rmtree(folder_path, ignore_errors=True)
     # No return needed

@@ -17,6 +17,8 @@ class Item(BaseModel):
 
 
 class InvoiceData(BaseModel):
+    model_config = {"populate_by_name": True}
+
     filename: str
     confidence: float = Field(..., description="LLM extraction confidence score from 0.0 to 1.0")
 

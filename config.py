@@ -1,8 +1,7 @@
 GEMINI_MODEL_NAME = "gemini-2.5-flash"
-GEMINI_ANALYSIS_NAME = 'gemini-2.5-flash-lite'
 CONFIDENCE_THRESHOLD = 0.75
 SUPPORTED_FORMATS = [".pdf", ".jpg", ".png", ".jpeg", ".webp"]
-MAX_UPLOAD_SIZE_MB= 5
+MAX_UPLOAD_SIZE_MB= 10
 MAX_WORKERS = 1
 TIMEOUT= 30
 MAX_RETRIES = 6
