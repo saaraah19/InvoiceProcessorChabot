@@ -6,209 +6,79 @@
   <title>Invoice Processor</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
+    /* --- Vos styles (identiques à ce que vous aviez, je les garde) --- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #ffffff;
-      --bg-secondary: #f8f8f7;
-      --bg-info: #e6f1fb;
-      --bg-success: #eaf3de;
-      --bg-warning: #faeeda;
-      --bg-danger: #fcebeb;
-      --text: #1a1a1a;
-      --text-secondary: #6b6b6b;
-      --text-info: #185fa5;
-      --text-success: #3b6d11;
-      --text-warning: #854f0b;
-      --text-danger: #a32d2d;
-      --border: rgba(0,0,0,0.12);
-      --border-hover: rgba(0,0,0,0.25);
-      --radius-md: 8px;
-      --radius-lg: 12px;
+      --bg: #ffffff; --bg-secondary: #f8f8f7; --bg-info: #e6f1fb; --bg-success: #eaf3de;
+      --bg-warning: #faeeda; --bg-danger: #fcebeb; --text: #1a1a1a; --text-secondary: #6b6b6b;
+      --text-info: #185fa5; --text-success: #3b6d11; --text-warning: #854f0b; --text-danger: #a32d2d;
+      --border: rgba(0,0,0,0.12); --border-hover: rgba(0,0,0,0.25); --radius-md: 8px; --radius-lg: 12px;
     }
-
     @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #1a1a1a;
-        --bg-secondary: #242424;
-        --bg-info: #0c447c;
-        --bg-success: #27500a;
-        --bg-warning: #633806;
-        --bg-danger: #791f1f;
-        --text: #e8e8e8;
-        --text-secondary: #999;
-        --text-info: #85b7eb;
-        --text-success: #c0dd97;
-        --text-warning: #fac775;
-        --text-danger: #f09595;
-        --border: rgba(255,255,255,0.12);
-        --border-hover: rgba(255,255,255,0.25);
-      }
+      :root { --bg: #1a1a1a; --bg-secondary: #242424; --bg-info: #0c447c; --bg-success: #27500a;
+      --bg-warning: #633806; --bg-danger: #791f1f; --text: #e8e8e8; --text-secondary: #999;
+      --text-info: #85b7eb; --text-success: #c0dd97; --text-warning: #fac775; --text-danger: #f09595;
+      --border: rgba(255,255,255,0.12); --border-hover: rgba(255,255,255,0.25); }
     }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 0 1.5rem 4rem;
-      max-width: 760px;
-      margin: 0 auto;
-    }
-
-    .header {
-      padding: 1.5rem 0 1.25rem;
-      border-bottom: 0.5px solid var(--border);
-      margin-bottom: 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 0 1.5rem 4rem; max-width: 760px; margin: 0 auto; }
+    .header { padding: 1.5rem 0 1.25rem; border-bottom: 0.5px solid var(--border); margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; }
     .logo-row { display: flex; align-items: center; gap: 10px; }
-
-    .logo-icon {
-      width: 34px; height: 34px;
-      background: var(--bg-info);
-      border-radius: var(--radius-md);
-      display: flex; align-items: center; justify-content: center;
-    }
-    progress {
-  appearance: none;
-  -webkit-appearance: none;
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--border);
-}
-
-progress::-webkit-progress-bar {
-  background: var(--border);
-  border-radius: 8px;
-}
-
-progress::-webkit-progress-value {
-  background: var(--text-info);
-  border-radius: 8px;
-  transition: width 0.2s ease;
-}
-
-progress::-moz-progress-bar {
-  background: var(--text-info);
-  border-radius: 8px;
-}
-
-
-    .drop-zone {
-      border: 0.5px dashed var(--border-hover);
-      border-radius: var(--radius-lg);
-      padding: 2.5rem 2rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-    }
-
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color: var(--text-info);
-      background: var(--bg-info);
-    }
-
-    .badge {
-      display: inline-flex; align-items: center; gap: 3px;
-      padding: 2px 8px; border-radius: 100px;
-      font-size: 12px; font-weight: 500;
-    }
-
+    .logo-icon { width: 34px; height: 34px; background: var(--bg-info); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; }
+    progress { appearance: none; -webkit-appearance: none; border-radius: 8px; overflow: hidden; background: var(--border); }
+    progress::-webkit-progress-bar { background: var(--border); border-radius: 8px; }
+    progress::-webkit-progress-value { background: var(--text-info); border-radius: 8px; transition: width 0.2s ease; }
+    progress::-moz-progress-bar { background: var(--text-info); border-radius: 8px; }
+    .drop-zone { border: 0.5px dashed var(--border-hover); border-radius: var(--radius-lg); padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--text-info); background: var(--bg-info); }
+    .badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 100px; font-size: 12px; font-weight: 500; }
     .badge-ok { background: var(--bg-success); color: var(--text-success); }
     .badge-warn { background: var(--bg-warning); color: var(--text-warning); }
     .badge-err { background: var(--bg-danger); color: var(--text-danger); }
-
-    .metric-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 12px; margin-bottom: 1.5rem;
-    }
-
-    .metric-card {
-      background: var(--bg-secondary);
-      border-radius: var(--radius-md);
-      padding: 1rem;
-    }
-
-    .file-chip {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 3px 10px;
-      background: var(--bg-secondary);
-      border: 0.5px solid var(--border);
-      border-radius: 100px;
-      font-size: 12px; color: var(--text-secondary);
-      margin: 3px;
-    }
-
+    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+    .metric-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1rem; }
+    .file-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; background: var(--bg-secondary); border: 0.5px solid var(--border); border-radius: 100px; font-size: 12px; color: var(--text-secondary); margin: 3px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
-    th {
-      text-align: left; padding: 8px 12px;
-      font-size: 11px; font-weight: 500;
-      color: var(--text-secondary);
-      border-bottom: 0.5px solid var(--border);
-      text-transform: uppercase; letter-spacing: 0.05em;
-    }
-    td {
-      padding: 10px 12px;
-      border-bottom: 0.5px solid var(--border);
-      color: var(--text);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 500; color: var(--text-secondary); border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 10px 12px; border-bottom: 0.5px solid var(--border); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     tr:last-child td { border-bottom: none; }
-
-    button {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 8px 16px; border-radius: var(--radius-md);
-      border: 0.5px solid var(--border-hover);
-      background: transparent; color: var(--text);
-      font-size: 14px; cursor: pointer;
-      transition: background 0.15s;
-    }
+    button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-md); border: 0.5px solid var(--border-hover); background: transparent; color: var(--text); font-size: 14px; cursor: pointer; transition: background 0.15s; }
     button:hover { background: var(--bg-secondary); }
     button:active { transform: scale(0.98); }
-
     .spin { animation: spin 1s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
     #section-processing, #section-results { display: none; }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <div class="logo-row">
-      <div class="logo-icon">
-        <i class="ti ti-file-invoice" style="font-size:18px;color:var(--text-info)"></i>
-      </div>
-      <div>
-        <p style="font-size:15px;font-weight:500">Invoice processor</p>
-        <p style="font-size:12px;color:var(--text-secondary)">Extract, verify, and export invoice data to CSV</p>
-      </div>
-    </div>
-    <span class="badge badge-ok" style="font-size:11px">
-      <i class="ti ti-circle-filled" style="font-size:8px"></i> Live
-    </span>
+<div class="header">
+  <div class="logo-row">
+    <div class="logo-icon"><i class="ti ti-file-invoice" style="font-size:18px;color:var(--text-info)"></i></div>
+    <div><p style="font-size:15px;font-weight:500">Invoice processor</p><p style="font-size:12px;color:var(--text-secondary)">Extract, verify, and export invoice data to CSV</p></div>
   </div>
+  <span class="badge badge-ok" style="font-size:11px"><i class="ti ti-circle-filled" style="font-size:8px"></i> Live</span>
+</div>
 
-  <!-- Upload -->
-  <div id="section-upload">
-    <div id="drop-zone" class="drop-zone" onclick="document.getElementById('file-input').click()">
-      <i class="ti ti-cloud-upload" style="font-size:36px;color:var(--text-secondary);display:block;margin-bottom:12px"></i>
-      <p style="font-size:15px;font-weight:500;margin-bottom:6px">Drop invoices here</p>
-      <p style="font-size:13px;color:var(--text-secondary)">PDF, JPG, PNG, WEBP · single or batch · up to 10 MB</p>
-      <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none">
-    </div>
-    <div id="file-list" style="margin:1rem 0;min-height:28px"></div>
-    <button id="btn-process" onclick="handleProcess()" style="display:none;width:100%;justify-content:center;padding:10px;font-size:14px;font-weight:500">
-      <i class="ti ti-bolt"></i> Process invoices
-    </button>
+<!-- Bannière d'erreur visible -->
+<div id="error-banner" style="display: none; background: var(--bg-danger); color: var(--text-danger); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 1rem; position: relative;">
+  <span id="error-message"></span>
+  <button onclick="closeError()" style="position: absolute; right: 8px; top: 8px; background: none; border: none; font-size: 16px; cursor: pointer;">&times;</button>
+</div>
+
+<!-- Upload -->
+<div id="section-upload">
+  <div id="drop-zone" class="drop-zone" onclick="document.getElementById('file-input').click()">
+    <i class="ti ti-cloud-upload" style="font-size:36px;color:var(--text-secondary);display:block;margin-bottom:12px"></i>
+    <p style="font-size:15px;font-weight:500;margin-bottom:6px">Drop invoices here</p>
+    <p style="font-size:13px;color:var(--text-secondary)">PDF, JPG, PNG, WEBP · single or batch · up to 10 MB</p>
+    <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none">
   </div>
+  <div id="file-list" style="margin:1rem 0;min-height:28px"></div>
+  <button id="btn-process" onclick="handleProcess()" style="display:none;width:100%;justify-content:center;padding:10px;font-size:14px;font-weight:500"><i class="ti ti-bolt"></i> Process invoices</button>
+</div>
 
-  <!-- Processing -->
-  <div id="section-processing">
+<!-- Processing -->
+<div id="section-processing">
   <div style="text-align:center;padding:1.5rem 0">
     <i class="ti ti-loader-2 spin" style="font-size:30px;color:var(--text-secondary);display:block;margin-bottom:14px"></i>
     <p id="processing-status" style="font-size:14px;color:var(--text-secondary);margin-bottom:12px">Processing...</p>
@@ -217,220 +87,107 @@ progress::-moz-progress-bar {
   </div>
 </div>
 
-  <!-- Results -->
-  <div id="section-results">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
-      <p style="font-size:15px;font-weight:500">Results</p>
-      <div style="display:flex;gap:8px">
-    <button onclick="handleDownload('detailed')"><i class="ti ti-download"></i> Download CSV (Detailed)</button>
-    <button onclick="handleDownload('summary')"><i class="ti ti-file-spreadsheet"></i> Download CSV (Summary)</button>
-    <button onclick="handleReset()"><i class="ti ti-refresh"></i> New batch</button>
-</div>
-    </div>
-
-    <div class="metric-grid">
-      <div class="metric-card">
-        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Approved</p>
-        <p id="count-approved" style="font-size:26px;font-weight:500;color:var(--text-success)">0</p>
-      </div>
-      <div class="metric-card">
-        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Needs review</p>
-        <p id="count-review" style="font-size:26px;font-weight:500;color:var(--text-warning)">0</p>
-      </div>
-      <div class="metric-card">
-        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Errors</p>
-        <p id="count-errors" style="font-size:26px;font-weight:500;color:var(--text-danger)">0</p>
-      </div>
-    </div>
-
-    <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:25%">File</th>
-            <th style="width:20%">Vendor</th>
-            <th style="width:15%">Total</th>
-            <th style="width:20%">Category</th>
-            <th style="width:20%">Confidence</th>
-          </tr>
-        </thead>
-        <tbody id="results-body"></tbody>
-      </table>
+<!-- Results -->
+<div id="section-results">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+    <p style="font-size:15px;font-weight:500">Results</p>
+    <div style="display:flex;gap:8px">
+      <button onclick="handleDownload('detailed')"><i class="ti ti-download"></i> Download CSV (Detailed)</button>
+      <button onclick="handleDownload('summary')"><i class="ti ti-file-spreadsheet"></i> Download CSV (Summary)</button>
+      <button onclick="handleReset()"><i class="ti ti-refresh"></i> New batch</button>
     </div>
   </div>
+  <div class="metric-grid">
+    <div class="metric-card"><p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Approved</p><p id="count-approved" style="font-size:26px;font-weight:500;color:var(--text-success)">0</p></div>
+    <div class="metric-card"><p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Needs review</p><p id="count-review" style="font-size:26px;font-weight:500;color:var(--text-warning)">0</p></div>
+    <div class="metric-card"><p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Errors</p><p id="count-errors" style="font-size:26px;font-weight:500;color:var(--text-danger)">0</p></div>
+  </div>
+  <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+    <table><thead><tr><th style="width:25%">File</th><th style="width:20%">Vendor</th><th style="width:15%">Total</th><th style="width:20%">Category</th><th style="width:20%">Confidence</th></tr></thead><tbody id="results-body"></tbody></table>
+  </div>
+</div>
 
 <script>
-    const state = { files: [], jobId: null, polling: null, results: [] }
-    const THRESHOLD = 0.75, FLOOR = 0.2
-    const $ = id => document.getElementById(id)
-    const show = id => $(id).style.display = 'block'
-    const hide = id => $(id).style.display = 'none'
+  const state = { files: [], jobId: null, polling: null, results: [] };
+  const THRESHOLD = 0.75, FLOOR = 0.2;
+  const $ = id => document.getElementById(id);
+  const show = id => $(id).style.display = 'block';
+  const hide = id => $(id).style.display = 'none';
 
-    $('file-input').addEventListener('change', e => setFiles([...e.target.files]))
+  const allowed = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
 
-    const dz = $('drop-zone')
-    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over') })
-    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'))
-    dz.addEventListener('drop', e => {
-        e.preventDefault()
-        dz.classList.remove('drag-over')
-        setFiles([...e.dataTransfer.files])
-    })
+  // Helper to escape HTML
+  function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
 
-    function setFiles(files) {
-        state.files = files
-        $('file-list').innerHTML = files.map(f =>
-            `<span class="file-chip"><i class="ti ti-file"></i>${f.name}</span>`
-        ).join('')
-        $('btn-process').style.display = files.length ? 'flex' : 'none'
+  // File validation and display
+  function setFiles(files) {
+    const invalid = files.filter(f => !allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
+    const valid = files.filter(f => allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
+    if (invalid.length) {
+      showError(`Format non supporté: ${invalid.map(f => f.name).join(', ')}. Fichiers ignorés.`);
     }
-
-    async function handleProcess() {
-        hide('section-upload')
-        show('section-processing')
-        if (state.files.length === 1) await processSingle()
-        else await processBatch()
+    state.files = valid;
+    const fileListHtml = valid.map(f => `<span class="file-chip"><i class="ti ti-file"></i>${escapeHtml(f.name)}</span>`).join('');
+    const invalidHtml = invalid.map(f => `<span class="file-chip" style="background:var(--bg-danger);color:var(--text-danger);"><i class="ti ti-x"></i>${escapeHtml(f.name)} (non supporté)</span>`).join('');
+    $('file-list').innerHTML = fileListHtml + invalidHtml;
+    $('btn-process').style.display = valid.length ? 'flex' : 'none';
+    if (valid.length === 0 && invalid.length > 0) {
+      showError("Aucun fichier valide sélectionné. Formats acceptés : PDF, JPG, PNG, WEBP.");
     }
+  }
 
-    async function processSingle() {
-        $('processing-status').textContent = 'Extracting invoice data...'
-        const form = new FormData()
-        form.append('file', state.files[0])
-        try {
-            const res = await fetch('/process', { method: 'POST', body: form })
-            if (!res.ok) throw new Error(await res.text())
-            state.results = [await res.json()]
-            showResults()
-        } catch (e) { showError(e.message) }
-    }
+  // Event listeners
+  $('file-input').addEventListener('change', e => setFiles([...e.target.files]));
+  const dz = $('drop-zone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); setFiles([...e.dataTransfer.files]); });
 
-    async function processBatch() {
-        $('processing-status').textContent = `Uploading ${state.files.length} files...`
-        const form = new FormData()
-        state.files.forEach(f => form.append('files', f))
-        try {
-            const res = await fetch('/batch', { method: 'POST', body: form })
-            if (!res.ok) throw new Error(await res.text())
-            const { job_id } = await res.json()
-            state.jobId = job_id
-            pollProgress()
-        } catch (e) { showError(e.message) }
-    }
-
-   function pollProgress() {
+  async function handleProcess() { hide('section-upload'); show('section-processing'); if (state.files.length === 1) await processSingle(); else await processBatch(); }
+  async function processSingle() {
+    $('processing-status').textContent = 'Extracting invoice data...';
+    const form = new FormData(); form.append('file', state.files[0]);
+    try { const res = await fetch('/process', { method: 'POST', body: form }); if (!res.ok) throw new Error(await res.text()); state.results = [await res.json()]; showResults(); } catch (e) { showError(e.message); }
+  }
+  async function processBatch() {
+    $('processing-status').textContent = `Uploading ${state.files.length} files...`;
+    const form = new FormData(); state.files.forEach(f => form.append('files', f));
+    try { const res = await fetch('/batch', { method: 'POST', body: form }); if (!res.ok) throw new Error(await res.text()); const { job_id } = await res.json(); state.jobId = job_id; pollProgress(); } catch (e) { showError(e.message); }
+  }
+  function pollProgress() {
     state.polling = setInterval(async () => {
-        try {
-            const res = await fetch(`/progress/${state.jobId}`);
-            if (!res.ok) throw new Error('Progress check failed');
-            const { status, total, processed } = await res.json();
-
-            // Update text status
-            const statusMsg = `Processing batch · ${processed} of ${total} files`;
-            $('processing-status').textContent = statusMsg;
-
-            // Update progress bar
-            const percent = total > 0 ? (processed / total) * 100 : 0;
-            const progressBar = $('progress-bar');
-            if (progressBar) {
-                progressBar.value = percent;
-                progressBar.max = 100;
-            }
-            const percentSpan = $('progress-percent');
-            if (percentSpan) {
-                percentSpan.textContent = `${Math.round(percent)}%`;
-            }
-
-            if (status === 'done') {
-                clearInterval(state.polling);
-                const resultsRes = await fetch(`/results/${state.jobId}`);
-                if (!resultsRes.ok) throw new Error('Could not fetch results');
-                const { results } = await resultsRes.json();
-                state.results = results;
-                showResults();
-            } else if (status === 'failed') {
-                clearInterval(state.polling);
-                showError('Batch failed — check CSV for error details');
-            }
-        } catch (e) {
-            clearInterval(state.polling);
-            showError(e.message);
-        }
+      try {
+        const res = await fetch(`/progress/${state.jobId}`); if (!res.ok) throw new Error('Progress check failed');
+        const { status, total, processed } = await res.json();
+        $('processing-status').textContent = `Processing batch · ${processed} of ${total} files`;
+        const percent = total > 0 ? (processed / total) * 100 : 0;
+        const progressBar = $('progress-bar'); if (progressBar) { progressBar.value = percent; progressBar.max = 100; }
+        const percentSpan = $('progress-percent'); if (percentSpan) percentSpan.textContent = `${Math.round(percent)}%`;
+        if (status === 'done') {
+          clearInterval(state.polling);
+          const resultsRes = await fetch(`/results/${state.jobId}`); if (!resultsRes.ok) throw new Error('Could not fetch results');
+          const { results } = await resultsRes.json(); state.results = results; showResults();
+        } else if (status === 'failed') { clearInterval(state.polling); showError('Batch failed — check CSV for error details'); }
+      } catch (e) { clearInterval(state.polling); showError(e.message); }
     }, 1000);
-}
-
-    function badge(score) {
-        const pct = Math.round(score * 100)
-        if (score >= THRESHOLD) return `<span class="badge badge-ok"><i class="ti ti-check"></i>${pct}%</span>`
-        if (score >= FLOOR) return `<span class="badge badge-warn"><i class="ti ti-alert-triangle"></i>${pct}%</span>`
-        return `<span class="badge badge-err"><i class="ti ti-x"></i>${pct}%</span>`
-    }
-
-    function showResults() {
-        hide('section-processing')
-        show('section-results')
-        let approved = 0, review = 0, errors = 0
-        const rows = state.results.map(r => {
-            // If an error was stored (e.g., file processing error)
-            if (r.error) {
-                errors++
-                return `<tr><td title="${r.filename||''}">${r.filename||'—'}</td><td colspan="3" style="color:var(--text-danger)">${r.error}</td><td>—</td></tr>`
-            }
-            const s = r.confidence || 0
-            if (s >= THRESHOLD) approved++
-            else if (s >= FLOOR) review++
-            else errors++
-            const total = r.total_amount_due != null
-                ? `${r.currency || ''} ${Number(r.total_amount_due).toFixed(2)}`
-                : '—'
-            return `<tr>
-                <td title="${r.filename||''}">${r.filename||'—'}</td>
-                <td>${r.vendor_name||'—'}</td>
-                <td>${total}</td>
-                <td>${r.category||'—'}</td>
-                <td>${badge(s)}</td>
-            </tr>`
-        }).join('')
-        $('results-body').innerHTML = rows ||
-            '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:2rem">No results</td></tr>'
-        $('count-approved').textContent = approved
-        $('count-review').textContent = review
-        $('count-errors').textContent = errors
-    }
-
- async function handleDownload(type = 'detailed') {
-    if (state.jobId) {
-        const url = type === 'summary'
-            ? `/export/summary/${state.jobId}`
-            : `/export/${state.jobId}`;
-        window.location.href = url;
-    } else if (state.results.length) {
-        // Fallback for single file upload (no jobId)
-        const keys = Object.keys(state.results[0]);
-        const csv = [
-            keys.join(','),
-            ...state.results.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))
-        ].join('\n');
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-        a.download = 'invoice_export.csv';
-        a.click();
-    }
-}
-
-    function showError(msg) {
-        hide('section-processing')
-        show('section-upload')
-        alert('Error: ' + msg)
-    }
-
-    function handleReset() {
-        state.files = []; state.jobId = null; state.results = []
-        if (state.polling) clearInterval(state.polling)
-        $('file-list').innerHTML = ''
-        $('btn-process').style.display = 'none'
-        $('results-body').innerHTML = ''
-        hide('section-results')
-        show('section-upload')
-    }
-</script></body>
+  }
+  function badge(score) { const pct = Math.round(score * 100); if (score >= THRESHOLD) return `<span class="badge badge-ok"><i class="ti ti-check"></i>${pct}%</span>`; if (score >= FLOOR) return `<span class="badge badge-warn"><i class="ti ti-alert-triangle"></i>${pct}%</span>`; return `<span class="badge badge-err"><i class="ti ti-x"></i>${pct}%</span>`; }
+  function showResults() {
+    hide('section-processing'); show('section-results');
+    let approved = 0, review = 0, errors = 0;
+    const rows = state.results.map(r => {
+      if (r.error) { errors++; return `<tr><td title="${escapeHtml(r.filename)}">${escapeHtml(r.filename||'—')}</td><td colspan="3" style="color:var(--text-danger)">${escapeHtml(r.error)}</td><td>—</td></tr>`; }
+      const s = r.confidence || 0; if (s >= THRESHOLD) approved++; else if (s >= FLOOR) review++; else errors++;
+      const total = r.total_amount_due != null ? `${r.currency || ''} ${Number(r.total_amount_due).toFixed(2)}` : '—';
+      return `<tr><td title="${escapeHtml(r.filename)}">${escapeHtml(r.filename||'—')}</td><td>${escapeHtml(r.vendor_name||'—')}</td><td>${escapeHtml(total)}</td><td>${escapeHtml(r.category||'—')}</td><td>${badge(s)}</td></tr>`;
+    }).join('');
+    $('results-body').innerHTML = rows || '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:2rem">No results</td></tr>';
+    $('count-approved').textContent = approved; $('count-review').textContent = review; $('count-errors').textContent = errors;
+  }
+  async function handleDownload(type = 'detailed') { if (state.jobId) { window.location.href = type === 'summary' ? `/export/summary/${state.jobId}` : `/export/${state.jobId}`; } else if (state.results.length) { const keys = Object.keys(state.results[0]); const csv = [keys.join(','), ...state.results.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'invoice_export.csv'; a.click(); } }
+  function showError(msg, autoHide = true) { const banner = $('error-banner'); const msgSpan = $('error-message'); if (!banner || !msgSpan) { console.error("Bannière d'erreur introuvable"); alert(msg); return; } msgSpan.innerText = msg; banner.style.display = 'block'; if (autoHide) { setTimeout(() => { banner.style.display = 'none'; }, 8000); } }
+  function closeError() { const banner = $('error-banner'); if (banner) banner.style.display = 'none'; }
+  function handleReset() { state.files = []; state.jobId = null; state.results = []; if (state.polling) clearInterval(state.polling); $('file-list').innerHTML = ''; $('btn-process').style.display = 'none'; $('results-body').innerHTML = ''; hide('section-results'); show('section-upload'); }
+</script>
+</body>
 </html>
