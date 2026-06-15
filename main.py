@@ -56,8 +56,7 @@ async def process_batch(
 ):
     # Create job record NOW with the ID you'll return to client
     job_id = str(uuid.uuid4())          # ← single source of truth
-    jobs.create_job(job_id)              # ← store immediately
-
+    jobs.create_job(job_id, total_files=len(files))   # <-- add total_files
     batch_dir = UPLOAD_DIR / job_id      # ← use job_id for folder (optional but consistent)
     batch_dir.mkdir()
 
@@ -114,3 +113,15 @@ def get_results(job_id: str):
 
     results = json.loads(row["results"]) if row["results"] else []
     return {"job_id": job_id, "results": results}
+
+@app.get("/progress/{job_id}")
+def get_progress(job_id: str):
+    row = jobs.get_job(job_id)
+    if not row:
+        raise HTTPException(404, "Job not found")
+    return {
+        "job_id": job_id,
+        "status": row["status"],
+        "total": row["total_files"],
+        "processed": row["processed_files"]
+    }

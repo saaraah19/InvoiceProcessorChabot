@@ -48,6 +48,7 @@ def run_batch(folder_path: str, job_id: str) -> None:   # ← add job_id paramet
                         "filename": Path(file_path).name,
                         "error": str(e)
                     })
+                jobs.increment_processed(job_id)
 
         jobs.save_results(job_id, results)
         jobs.update_status(job_id, "done")

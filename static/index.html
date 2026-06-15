@@ -73,6 +73,30 @@
       border-radius: var(--radius-md);
       display: flex; align-items: center; justify-content: center;
     }
+    progress {
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--border);
+}
+
+progress::-webkit-progress-bar {
+  background: var(--border);
+  border-radius: 8px;
+}
+
+progress::-webkit-progress-value {
+  background: var(--text-info);
+  border-radius: 8px;
+  transition: width 0.2s ease;
+}
+
+progress::-moz-progress-bar {
+  background: var(--text-info);
+  border-radius: 8px;
+}
+
 
     .drop-zone {
       border: 0.5px dashed var(--border-hover);
@@ -185,11 +209,13 @@
 
   <!-- Processing -->
   <div id="section-processing">
-    <div style="text-align:center;padding:3rem 0">
-      <i class="ti ti-loader-2 spin" style="font-size:30px;color:var(--text-secondary);display:block;margin-bottom:14px"></i>
-      <p id="processing-status" style="font-size:14px;color:var(--text-secondary)">Processing...</p>
-    </div>
+  <div style="text-align:center;padding:1.5rem 0">
+    <i class="ti ti-loader-2 spin" style="font-size:30px;color:var(--text-secondary);display:block;margin-bottom:14px"></i>
+    <p id="processing-status" style="font-size:14px;color:var(--text-secondary);margin-bottom:12px">Processing...</p>
+    <progress id="progress-bar" value="0" max="100" style="width:80%; height:8px; border-radius:4px;"></progress>
+    <p id="progress-percent" style="font-size:12px;color:var(--text-secondary);margin-top:8px">0%</p>
   </div>
+</div>
 
   <!-- Results -->
   <div id="section-results">
@@ -286,35 +312,50 @@
             if (!res.ok) throw new Error(await res.text())
             const { job_id } = await res.json()
             state.jobId = job_id
-            pollStatus()
+            pollProgress()
         } catch (e) { showError(e.message) }
     }
 
-    function pollStatus() {
-        state.polling = setInterval(async () => {
-            try {
-                const statusRes = await fetch(`/status/${state.jobId}`)
-                if (!statusRes.ok) throw new Error('Status check failed')
-                const { status } = await statusRes.json()
-                $('processing-status').textContent = `Processing batch · ${status}`
-                if (status === 'done') {
-                    clearInterval(state.polling)
-                    // --- Fetch the actual results ---
-                    const resultsRes = await fetch(`/results/${state.jobId}`)
-                    if (!resultsRes.ok) throw new Error('Could not fetch results')
-                    const { results } = await resultsRes.json()
-                    state.results = results   // array of invoice dicts
-                    showResults()
-                } else if (status === 'failed') {
-                    clearInterval(state.polling)
-                    showError('Batch failed — check CSV for error details')
-                }
-            } catch (e) {
-                clearInterval(state.polling)
-                showError(e.message)
+   function pollProgress() {
+    state.polling = setInterval(async () => {
+        try {
+            const res = await fetch(`/progress/${state.jobId}`);
+            if (!res.ok) throw new Error('Progress check failed');
+            const { status, total, processed } = await res.json();
+
+            // Update text status
+            const statusMsg = `Processing batch · ${processed} of ${total} files`;
+            $('processing-status').textContent = statusMsg;
+
+            // Update progress bar
+            const percent = total > 0 ? (processed / total) * 100 : 0;
+            const progressBar = $('progress-bar');
+            if (progressBar) {
+                progressBar.value = percent;
+                progressBar.max = 100;
             }
-        }, 2000)
-    }
+            const percentSpan = $('progress-percent');
+            if (percentSpan) {
+                percentSpan.textContent = `${Math.round(percent)}%`;
+            }
+
+            if (status === 'done') {
+                clearInterval(state.polling);
+                const resultsRes = await fetch(`/results/${state.jobId}`);
+                if (!resultsRes.ok) throw new Error('Could not fetch results');
+                const { results } = await resultsRes.json();
+                state.results = results;
+                showResults();
+            } else if (status === 'failed') {
+                clearInterval(state.polling);
+                showError('Batch failed — check CSV for error details');
+            }
+        } catch (e) {
+            clearInterval(state.polling);
+            showError(e.message);
+        }
+    }, 1000);
+}
 
     function badge(score) {
         const pct = Math.round(score * 100)

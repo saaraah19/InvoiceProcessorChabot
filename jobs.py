@@ -16,22 +16,23 @@ def get_connection():
     return conn
 
 def init_db():
-    # Run once on startup — creates the table if it doesn't exist yet
     with get_connection() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS jobs (
                 job_id TEXT PRIMARY KEY,
                 status TEXT,
-                results TEXT
+                results TEXT,
+                total_files INTEGER DEFAULT 0,
+                processed_files INTEGER DEFAULT 0
             )
         """)
         conn.commit()
 
-def create_job(job_id: str):
+def create_job(job_id: str, total_files: int = 0):
     with get_connection() as conn:
         conn.execute(
-            "INSERT INTO jobs (job_id, status, results) VALUES (?, ?, ?)",
-            (job_id, "processing", None)
+            "INSERT INTO jobs (job_id, status, results, total_files, processed_files) VALUES (?, ?, ?, ?, ?)",
+            (job_id, "processing", None, total_files, 0)
         )
         conn.commit()
 
@@ -60,3 +61,11 @@ def get_job(job_id: str):
             (job_id,)
         ).fetchone()
     return row
+
+def increment_processed(job_id: str):
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE jobs SET processed_files = processed_files + 1 WHERE job_id = ?",
+            (job_id,)
+        )
+        conn.commit()
