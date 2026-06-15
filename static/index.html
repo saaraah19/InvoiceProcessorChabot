@@ -222,9 +222,10 @@ progress::-moz-progress-bar {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
       <p style="font-size:15px;font-weight:500">Results</p>
       <div style="display:flex;gap:8px">
-        <button onclick="handleDownload()"><i class="ti ti-download"></i> Download CSV</button>
-        <button onclick="handleReset()"><i class="ti ti-refresh"></i> New batch</button>
-      </div>
+    <button onclick="handleDownload('detailed')"><i class="ti ti-download"></i> Download CSV (Detailed)</button>
+    <button onclick="handleDownload('summary')"><i class="ti ti-file-spreadsheet"></i> Download CSV (Summary)</button>
+    <button onclick="handleReset()"><i class="ti ti-refresh"></i> New batch</button>
+</div>
     </div>
 
     <div class="metric-grid">
@@ -396,21 +397,25 @@ progress::-moz-progress-bar {
         $('count-errors').textContent = errors
     }
 
-    async function handleDownload() {
-        if (state.jobId) {
-            window.location.href = `/export/${state.jobId}`
-        } else if (state.results.length) {
-            const keys = Object.keys(state.results[0])
-            const csv = [
-                keys.join(','),
-                ...state.results.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))
-            ].join('\n')
-            const a = document.createElement('a')
-            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-            a.download = 'invoice_export.csv'
-            a.click()
-        }
+ async function handleDownload(type = 'detailed') {
+    if (state.jobId) {
+        const url = type === 'summary'
+            ? `/export/summary/${state.jobId}`
+            : `/export/${state.jobId}`;
+        window.location.href = url;
+    } else if (state.results.length) {
+        // Fallback for single file upload (no jobId)
+        const keys = Object.keys(state.results[0]);
+        const csv = [
+            keys.join(','),
+            ...state.results.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))
+        ].join('\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        a.download = 'invoice_export.csv';
+        a.click();
     }
+}
 
     function showError(msg) {
         hide('section-processing')

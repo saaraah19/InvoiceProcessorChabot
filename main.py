@@ -2,9 +2,9 @@ import uuid
 import csv
 import json
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Request
 import shutil
 import jobs
 import processor
@@ -14,7 +14,9 @@ from jobs import init_db
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-
+import openpyxl
+from openpyxl.styles import Font, PatternFill
+from fastapi.responses import FileResponse
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -41,12 +43,10 @@ def root():
 # ─── SINGLE FILE ─────────────────────────────────────────────
 @app.post("/process")
 @limiter.limit("10/minute")
-async def process_single(file: UploadFile = File(...)):
-    # save upload to disk
+async def process_single(request: Request, file: UploadFile = File(...)):
     file_path = UPLOAD_DIR / file.filename
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
-
     try:
         from extractor import extract_invoice
         invoice = extract_invoice(str(file_path))
@@ -62,23 +62,19 @@ def health():
 @app.post("/batch")
 @limiter.limit("5/minute")
 async def process_batch(
+        request: Request,
         background_tasks: BackgroundTasks,
         files: list[UploadFile] = File(...)
 ):
-    # Create job record NOW with the ID you'll return to client
-    job_id = str(uuid.uuid4())          # ← single source of truth
-    jobs.create_job(job_id, total_files=len(files))   # <-- add total_files
-    batch_dir = UPLOAD_DIR / job_id      # ← use job_id for folder (optional but consistent)
+    job_id = str(uuid.uuid4())
+    jobs.create_job(job_id, total_files=len(files))
+    batch_dir = UPLOAD_DIR / job_id
     batch_dir.mkdir()
-
     for file in files:
         file_path = batch_dir / file.filename
         with open(file_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
-
-    # Pass the SAME job_id to the background task
     background_tasks.add_task(processor.run_batch, str(batch_dir), job_id)
-
     return {"job_id": job_id, "message": "Batch started"}
 
 # ─── STATUS ──────────────────────────────────────────────────
@@ -136,3 +132,97 @@ def get_progress(job_id: str):
         "total": row["total_files"],
         "processed": row["processed_files"]
     }
+
+@app.get("/export/summary/{job_id}")
+def export_summary_csv(job_id: str):
+    row = jobs.get_job(job_id)
+    if not row:
+        raise HTTPException(404, "Job not found")
+    if row["status"] != "done":
+        raise HTTPException(400, "Job not finished yet")
+
+    results = json.loads(row["results"]) if row["results"] else []
+    output_path = str(OUTPUT_DIR / f"{job_id}_summary.csv")
+
+    # Write a simplified CSV: one row per invoice, no line items
+    with open(output_path, "w", newline="", encoding="utf-8-sig") as f:
+        fieldnames = [
+            "invoice_number", "vendor_name", "invoice_date",
+            "total_amount_due", "currency", "category", "confidence"
+        ]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for inv in results:
+            writer.writerow({
+                "invoice_number": inv.get("invoice_number", ""),
+                "vendor_name": inv.get("vendor_name", ""),
+                "invoice_date": inv.get("invoice_date", ""),
+                "total_amount_due": inv.get("total_amount_due", ""),
+                "currency": inv.get("currency", ""),
+                "category": inv.get("category", ""),
+                "confidence": inv.get("confidence", "")
+            })
+
+    return FileResponse(
+        output_path,
+        media_type="text/csv",
+        filename=f"invoices_summary_{job_id}.csv"
+    )
+
+@app.get("/export/excel/{job_id}")
+def export_excel(job_id: str):
+    row = jobs.get_job(job_id)
+    if not row:
+        raise HTTPException(404, "Job not found")
+    if row["status"] != "done":
+        raise HTTPException(400, "Job not finished yet")
+
+    results = json.loads(row["results"]) if row["results"] else []
+
+    # Séparer les résultats
+    approved = [inv for inv in results if inv.get("confidence", 0) >= 0.75]
+    review = [inv for inv in results if inv.get("confidence", 0) < 0.75]
+
+    # Créer le classeur
+    wb = openpyxl.Workbook()
+    # Supprimer la feuille par défaut
+    wb.remove(wb.active)
+
+    # Définir les en-têtes communs (version simplifiée sans ligne d'articles)
+    headers = ["invoice_number", "vendor_name", "invoice_date", "total_amount_due", "currency", "category",
+               "confidence"]
+
+    # Feuille "Approuvé"
+    ws_approved = wb.create_sheet("Approuvé")
+    ws_approved.append(headers)
+    for inv in approved:
+        ws_approved.append([
+            inv.get("invoice_number", ""),
+            inv.get("vendor_name", ""),
+            inv.get("invoice_date", ""),
+            inv.get("total_amount_due", ""),
+            inv.get("currency", ""),
+            inv.get("category", ""),
+            inv.get("confidence", "")
+        ])
+
+    # Feuille "À revoir"
+    ws_review = wb.create_sheet("À revoir")
+    ws_review.append(headers)
+    for inv in review:
+        ws_review.append([
+            inv.get("invoice_number", ""),
+            inv.get("vendor_name", ""),
+            inv.get("invoice_date", ""),
+            inv.get("total_amount_due", ""),
+            inv.get("currency", ""),
+            inv.get("category", ""),
+            inv.get("confidence", "")
+        ])
+
+    # Sauvegarder
+    output_path = OUTPUT_DIR / f"{job_id}.xlsx"
+    wb.save(output_path)
+
+    return FileResponse(output_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        filename=f"invoices_{job_id}.xlsx")
