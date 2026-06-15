@@ -1,4 +1,4 @@
-import os
+import os,time
 from pathlib import Path
 from config import SUPPORTED_FORMATS, MAX_UPLOAD_SIZE_MB, MIME_TYPES, CRITICAL_FIELDS
 from generator import client, call_gemini
@@ -44,7 +44,21 @@ def prepare_for_gemini(file_path: str):
     mime_type = MIME_TYPES[file.suffix.lower()]
     uploaded_file = None
     if file.suffix.lower() == ".pdf" or file_size_mb > 4:
+        # Upload to File API
         uploaded_file = client.files.upload(path=file_path)
+
+        # Wait for processing (Gemini needs time to make the file ready)
+        timeout = 30  # seconds
+        start = time.time()
+        while uploaded_file.state.name == "PROCESSING":
+            if time.time() - start > timeout:
+                raise TimeoutError(f"File processing timeout: {file.name}")
+            time.sleep(2)
+            uploaded_file = client.files.get(name=uploaded_file.name)
+
+        if uploaded_file.state.name == "FAILED":
+            raise ValueError(f"File processing failed: {file.name}")
+
         content = types.Part(
             file_data=types.FileData(
                 mime_type=mime_type,
@@ -59,7 +73,6 @@ def prepare_for_gemini(file_path: str):
             )
         )
     return content, uploaded_file
-
 
 def calculate_confidence(invoice: InvoiceData) -> float:
     filled = sum(1 for field in CRITICAL_FIELDS if getattr(invoice, field) is not None)
