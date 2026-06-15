@@ -142,6 +142,11 @@ def export_summary_csv(job_id: str):
         raise HTTPException(400, "Job not finished yet")
 
     results = json.loads(row["results"]) if row["results"] else []
+    # Remove invoices that have no meaningful data
+    results = [
+        inv for inv in results
+        if inv.get("invoice_number") or inv.get("vendor_name") or inv.get("total_amount_due")
+    ]
     output_path = str(OUTPUT_DIR / f"{job_id}_summary.csv")
 
     # Write a simplified CSV: one row per invoice, no line items
@@ -178,21 +183,37 @@ def export_excel(job_id: str):
         raise HTTPException(400, "Job not finished yet")
 
     results = json.loads(row["results"]) if row["results"] else []
+    errors = json.loads(row["errors"]) if row["errors"] else []
 
-    # Séparer les résultats
-    approved = [inv for inv in results if inv.get("confidence", 0) >= 0.75]
-    review = [inv for inv in results if inv.get("confidence", 0) < 0.75]
+    # Separate empty invoices (no meaningful data) and treat them as errors
+    meaningful = []
+    for inv in results:
+        # Check critical fields: invoice_number, vendor_name, total_amount_due
+        if inv.get("invoice_number") or inv.get("vendor_name") or inv.get("total_amount_due"):
+            meaningful.append(inv)
+        else:
+            # Add to errors list with filename if available
+            filename = inv.get("filename", "unknown")
+            errors.append({
+                "filename": filename,
+                "error": "No invoice data extracted – file may not be an invoice"
+            })
 
-    # Créer le classeur
+    # Split meaningful invoices by confidence
+    approved = [inv for inv in meaningful if inv.get("confidence", 0) >= 0.75]
+    review = [inv for inv in meaningful if inv.get("confidence", 0) < 0.75]
+
+    # Create Excel workbook
     wb = openpyxl.Workbook()
-    # Supprimer la feuille par défaut
-    wb.remove(wb.active)
+    wb.remove(wb.active)  # remove default sheet
 
-    # Définir les en-têtes communs (version simplifiée sans ligne d'articles)
-    headers = ["invoice_number", "vendor_name", "invoice_date", "total_amount_due", "currency", "category",
-               "confidence"]
+    # Headers for invoice sheets
+    headers = [
+        "invoice_number", "vendor_name", "invoice_date",
+        "total_amount_due", "currency", "category", "confidence"
+    ]
 
-    # Feuille "Approuvé"
+    # Sheet 1: Approuvé (high confidence)
     ws_approved = wb.create_sheet("Approuvé")
     ws_approved.append(headers)
     for inv in approved:
@@ -206,7 +227,7 @@ def export_excel(job_id: str):
             inv.get("confidence", "")
         ])
 
-    # Feuille "À revoir"
+    # Sheet 2: À revoir (low/medium confidence)
     ws_review = wb.create_sheet("À revoir")
     ws_review.append(headers)
     for inv in review:
@@ -220,9 +241,21 @@ def export_excel(job_id: str):
             inv.get("confidence", "")
         ])
 
-    # Sauvegarder
+    # Sheet 3: Erreurs (failed extractions + empty invoices + DB errors)
+    ws_errors = wb.create_sheet("Erreurs")
+    ws_errors.append(["filename", "error"])
+    if errors:
+        for err in errors:
+            ws_errors.append([err.get("filename", ""), err.get("error", "")])
+    else:
+        ws_errors.append(["No errors", ""])
+
+    # Save and return
     output_path = OUTPUT_DIR / f"{job_id}.xlsx"
     wb.save(output_path)
 
-    return FileResponse(output_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        filename=f"invoices_{job_id}.xlsx")
+    return FileResponse(
+        output_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=f"invoices_{job_id}.xlsx"
+    )

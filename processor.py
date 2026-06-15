@@ -49,7 +49,7 @@ def run_batch(folder_path: str, job_id: str) -> None:   # ← add job_id paramet
                         "error": str(e)
                     })
                 jobs.increment_processed(job_id)
-
+        jobs.save_errors(job_id, errors)
         jobs.save_results(job_id, results)
         jobs.update_status(job_id, "done")
 

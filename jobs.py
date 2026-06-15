@@ -22,6 +22,7 @@ def init_db():
                 job_id TEXT PRIMARY KEY,
                 status TEXT,
                 results TEXT,
+                errors TEXT,               -- new column
                 total_files INTEGER DEFAULT 0,
                 processed_files INTEGER DEFAULT 0
             )
@@ -67,5 +68,14 @@ def increment_processed(job_id: str):
         conn.execute(
             "UPDATE jobs SET processed_files = processed_files + 1 WHERE job_id = ?",
             (job_id,)
+        )
+        conn.commit()
+
+def save_errors(job_id: str, errors: list):
+    errors_json = json.dumps(errors) if errors else None
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE jobs SET errors = ? WHERE job_id = ?",
+            (errors_json, job_id)
         )
         conn.commit()
