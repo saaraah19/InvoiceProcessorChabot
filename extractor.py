@@ -37,7 +37,6 @@ def validate_file(file_path: str):
 
     return file_size_mb
 
-
 def prepare_for_gemini(file_path: str):
     file = Path(file_path)
     file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
@@ -84,12 +83,44 @@ def calculate_confidence(invoice: InvoiceData) -> float:
     return completeness
 
 
-# Only ONE extract_invoice – the correct one
 def extract_invoice(file_path: str) -> InvoiceData:
     validate_file(file_path)
     content, uploaded_file = prepare_for_gemini(file_path)
+
+    # Text prompt to guide Gemini
+    text_part = types.Part(text="""
+You are an invoice extraction expert.
+
+Extract the following fields from this invoice document:
+- vendor_name (company name of the seller)
+- vendor_tax_id (tax identification number, if present)
+- vendor_address (full address)
+- client_name (buyer/customer name)
+- invoice_number
+- invoice_date (YYYY-MM-DD format)
+- due_date (if present)
+- currency (three-letter code, e.g., USD, EUR, GBP)
+- subtotal (net amount before tax)
+- tax_total (total tax amount)
+- total_amount_due (final amount to pay)
+- iban (bank account number, if present)
+- notes (any special terms or remarks)
+
+For line items, extract each product/service as an object with:
+- item_number (optional)
+- item_description
+- qty (quantity, as number)
+- unit_price (price per unit)
+- tax_rate (as decimal, e.g., 0.1 for 10%)
+- tax_amount
+- line_total
+
+Confidence scoring is handled separately. Return null for any missing field.
+Do not hallucinate. If a section is illegible, leave it null.
+""")
+
     try:
-        invoice = call_gemini([content], InvoiceData)
+        invoice = call_gemini([text_part, content], InvoiceData)
         invoice.filename = Path(file_path).name
         invoice.confidence = calculate_confidence(invoice)
         return invoice
