@@ -1,4 +1,6 @@
 # Invoice Processor
+![Invoice Processor UI](./screenshot.png)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://your-app.railway.app)
 
 AI-powered invoice data extraction and accounting export tool. Upload one invoice or a batch of 50+ — the system extracts structured data using Gemini Vision, scores each extraction by confidence, routes records automatically, and delivers a ready-to-import CSV in seconds.
 
@@ -171,7 +173,14 @@ Retry logic on every Gemini call:
 - Max 3 attempts, then raises `RuntimeError`
 
 ---
+## Try it with sample invoices
 
+Don't have invoices at hand? Download these dummy samples:
+
+- [Sample invoice 1 – Office supplies](https://github.com/yourusername/invoice-processor/raw/main/samples/invoice1.pdf)
+- [Sample invoice 2 – Consulting services](https://github.com/yourusername/invoice-processor/raw/main/samples/invoice2.jpg)
+
+Place them in the `samples/` folder or upload directly through the UI.
 ## Tech stack
 
 | Layer | Technology |

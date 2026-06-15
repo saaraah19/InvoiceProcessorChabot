@@ -5,14 +5,36 @@ from generator import client, call_gemini
 from google.genai import types
 from model import InvoiceData   # <-- moved up
 
+MAGIC_BYTES = {
+    b'%PDF': 'application/pdf',
+    b'\xff\xd8\xff': 'image/jpeg',      # JPEG SOI marker
+    b'\x89PNG': 'image/png',            # PNG signature
+    b'RIFF': 'image/webp',              # WEBP container (needs deeper check, but okay)
+}
+def validate_magic_bytes(file_path: str):
+    with open(file_path, 'rb') as f:
+        header = f.read(4)
+    # Check against known magic signatures
+    for sig, mime in MAGIC_BYTES.items():
+        if header.startswith(sig):
+            return True
+    raise ValueError(f"File content does not match a supported format (magic bytes: {header.hex()})")
+
 
 def validate_file(file_path: str):
     file = Path(file_path)
+    # 1. Extension check
     if file.suffix.lower() not in SUPPORTED_FORMATS:
         raise ValueError(f"Unsupported file type: {file.suffix}")
+
+    # 2. Magic bytes check (content-based)
+    validate_magic_bytes(file_path)
+
+    # 3. Size check
     file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
     if file_size_mb > MAX_UPLOAD_SIZE_MB:
         raise ValueError(f"File too large: {file_size_mb:.1f}MB")
+
     return file_size_mb
 
 

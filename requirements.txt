@@ -10,3 +10,4 @@ flashrank
 python-multipart
 httpx
 pydantic
+slowapi

@@ -9,7 +9,12 @@ import shutil
 import jobs
 import processor
 import convertor
+from config import GEMINI_MODEL_NAME
 from jobs import init_db
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -17,15 +22,16 @@ OUTPUT_DIR = Path("outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="Invoice Processor")
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.on_event("startup")
 def startup():
     init_db()  # creates the SQLite table if it doesn't exist
 
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 
 @app.get("/")
 def root():
@@ -34,6 +40,7 @@ def root():
 
 # ─── SINGLE FILE ─────────────────────────────────────────────
 @app.post("/process")
+@limiter.limit("10/minute")
 async def process_single(file: UploadFile = File(...)):
     # save upload to disk
     file_path = UPLOAD_DIR / file.filename
@@ -47,9 +54,13 @@ async def process_single(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
 
+@app.get("/health")
+def health():
+    return {"status": "ok", "model": GEMINI_MODEL_NAME}
 
 # ─── BATCH ───────────────────────────────────────────────────
 @app.post("/batch")
+@limiter.limit("5/minute")
 async def process_batch(
         background_tasks: BackgroundTasks,
         files: list[UploadFile] = File(...)
