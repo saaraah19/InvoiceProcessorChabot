@@ -1,8 +1,8 @@
 import csv
+import json
 from typing import List, Dict, Any
-
+from utils import sanitize_cell
 WRONG_FILE_FLOOR = 0.2  # below this = wrong file entirely, not just low confidence
-
 
 def flatten_invoice(invoice: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
@@ -69,9 +69,11 @@ def convert_to_csv(results: List[Dict], errors: List[Dict], output_path: str) ->
         output_path: Path where the main CSV will be saved.
     """
     # Step 1: Flatten every invoice into multiple rows
+    # Step 1: Flatten every invoice into multiple rows, sanitizing each cell
     all_rows = []
     for inv in results:
-        all_rows.extend(flatten_invoice(inv))
+        for row in flatten_invoice(inv):
+            all_rows.append({k: sanitize_cell(v) for k, v in row.items()})
 
     # Step 2: Define the column order (important for readability)
     # We'll use the keys from the first row if available, otherwise a sensible default.

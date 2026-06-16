@@ -1,26 +1,26 @@
 """WHAT AN INVOICE LOOKS LIKE"""
 
-
 from typing import List, Optional, Literal
-
 from pydantic import BaseModel, Field
 
 
 class Item(BaseModel):
     item_number: Optional[str] = Field(None, description="SKU or part number")
     item_description: Optional[str] = Field(None, description="Line item text description")
-    qty: Optional[int] = Field(None, description="Quantity ordered/delivered")
+    qty: Optional[float] = Field(None, description="Quantity ordered/delivered (supports fractional units, e.g. 2.5 hours)")
     unit_price: Optional[float] = Field(None, description="Price per individual item excluding tax")
     tax_rate: Optional[float] = Field(None, description="Tax or VAT percentage applied to this line (e.g., 0.20 for 20%)")
     tax_amount: Optional[float] = Field(None, description="Calculated tax amount for this line")
     line_total: Optional[float] = Field(None, description="Total cost for this line item including tax")
 
 
-class InvoiceData(BaseModel):
+class ExtractedInvoice(BaseModel):
+    """
+    Schema sent to Gemini as response_schema. Contains only fields the
+    model should actually try to extract — filename and confidence are
+    computed in code afterward and shouldn't cost output tokens here.
+    """
     model_config = {"populate_by_name": True}
-
-    filename: str
-    confidence: float = Field(..., description="LLM extraction confidence score from 0.0 to 1.0")
 
     # Classification
     category: Optional[Literal[
@@ -48,5 +48,15 @@ class InvoiceData(BaseModel):
     total_amount_due: Optional[float] = Field(None, description="Grand total to be paid")
 
     # Nested Line Items
-    items: Optional[List[Item]] = Field(None, alias="Items")  # Keeps snake_case in Python, accepts "Items" if mapped
+    items: Optional[List[Item]] = Field(None, alias="Items")
     notes: Optional[str] = None
+
+
+class InvoiceData(ExtractedInvoice):
+    """
+    Full record stored and returned by the API. Adds fields that are
+    computed in code (filename, confidence) on top of everything Gemini
+    extracts.
+    """
+    filename: str
+    confidence: float = Field(..., description="Extraction confidence score from 0.0 to 1.0, computed in code")

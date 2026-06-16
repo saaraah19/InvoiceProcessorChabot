@@ -1,193 +1,532 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Invoice Processor</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <style>
-    /* --- Vos styles (identiques à ce que vous aviez, je les garde) --- */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>Invoice Processor</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fbfbfa;
+    --bg-secondary: #f3f2f0;
+    --bg-elevated: #ffffff;
+    --bg-info: #e9f1fb;
+    --bg-success: #e9f5e8;
+    --bg-warning: #fdf2df;
+    --bg-danger: #fbeaea;
+    --text: #16181d;
+    --text-secondary: #6b7078;
+    --text-faint: #9b9fa6;
+    --text-info: #1c5fa8;
+    --text-success: #1f7a3d;
+    --text-warning: #97590a;
+    --text-danger: #b3302b;
+    --accent: #1c5fa8;
+    --accent-contrast: #ffffff;
+    --border: rgba(15, 15, 15, 0.10);
+    --border-strong: rgba(15, 15, 15, 0.24);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-card: 0 1px 2px rgba(20, 20, 20, 0.05);
+    --font-ui: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Roboto Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #ffffff; --bg-secondary: #f8f8f7; --bg-info: #e6f1fb; --bg-success: #eaf3de;
-      --bg-warning: #faeeda; --bg-danger: #fcebeb; --text: #1a1a1a; --text-secondary: #6b6b6b;
-      --text-info: #185fa5; --text-success: #3b6d11; --text-warning: #854f0b; --text-danger: #a32d2d;
-      --border: rgba(0,0,0,0.12); --border-hover: rgba(0,0,0,0.25); --radius-md: 8px; --radius-lg: 12px;
+      --bg: #14161a;
+      --bg-secondary: #1d2024;
+      --bg-elevated: #202327;
+      --bg-info: #15334f;
+      --bg-success: #15331e;
+      --bg-warning: #4a3208;
+      --bg-danger: #4a1c1c;
+      --text: #e9eaec;
+      --text-secondary: #9a9ea6;
+      --text-faint: #6b6f76;
+      --text-info: #8cbdef;
+      --text-success: #8fd19e;
+      --text-warning: #f3b860;
+      --text-danger: #f29a93;
+      --border: rgba(255, 255, 255, 0.10);
+      --border-strong: rgba(255, 255, 255, 0.24);
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
-    @media (prefers-color-scheme: dark) {
-      :root { --bg: #1a1a1a; --bg-secondary: #242424; --bg-info: #0c447c; --bg-success: #27500a;
-      --bg-warning: #633806; --bg-danger: #791f1f; --text: #e8e8e8; --text-secondary: #999;
-      --text-info: #85b7eb; --text-success: #c0dd97; --text-warning: #fac775; --text-danger: #f09595;
-      --border: rgba(255,255,255,0.12); --border-hover: rgba(255,255,255,0.25); }
-    }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 0 1.5rem 4rem; max-width: 760px; margin: 0 auto; }
-    .header { padding: 1.5rem 0 1.25rem; border-bottom: 0.5px solid var(--border); margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; }
-    .logo-row { display: flex; align-items: center; gap: 10px; }
-    .logo-icon { width: 34px; height: 34px; background: var(--bg-info); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; }
-    progress { appearance: none; -webkit-appearance: none; border-radius: 8px; overflow: hidden; background: var(--border); }
-    progress::-webkit-progress-bar { background: var(--border); border-radius: 8px; }
-    progress::-webkit-progress-value { background: var(--text-info); border-radius: 8px; transition: width 0.2s ease; }
-    progress::-moz-progress-bar { background: var(--text-info); border-radius: 8px; }
-    .drop-zone { border: 0.5px dashed var(--border-hover); border-radius: var(--radius-lg); padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--text-info); background: var(--bg-info); }
-    .badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 100px; font-size: 12px; font-weight: 500; }
-    .badge-ok { background: var(--bg-success); color: var(--text-success); }
-    .badge-warn { background: var(--bg-warning); color: var(--text-warning); }
-    .badge-err { background: var(--bg-danger); color: var(--text-danger); }
-    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
-    .metric-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1rem; }
-    .file-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; background: var(--bg-secondary); border: 0.5px solid var(--border); border-radius: 100px; font-size: 12px; color: var(--text-secondary); margin: 3px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
-    th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 500; color: var(--text-secondary); border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 10px 12px; border-bottom: 0.5px solid var(--border); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    tr:last-child td { border-bottom: none; }
-    button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-md); border: 0.5px solid var(--border-hover); background: transparent; color: var(--text); font-size: 14px; cursor: pointer; transition: background 0.15s; }
-    button:hover { background: var(--bg-secondary); }
-    button:active { transform: scale(0.98); }
-    .spin { animation: spin 1s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    #section-processing, #section-results { display: none; }
-  </style>
+  }
+
+  html { color-scheme: light dark; }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell { max-width: 800px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
+  :focus-visible {
+    outline: 2px solid var(--text-info);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ---------- Header ---------- */
+  .header {
+    padding: 1.75rem 0 1.25rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .logo-row { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-mark i { font-size: 18px; color: var(--accent-contrast); }
+  .brand-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand-sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 1px; }
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 100px;
+    background: var(--bg-success); color: var(--text-success);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-success);
+  }
+
+  /* ---------- Error banner ---------- */
+  #error-banner {
+    display: none;
+    background: var(--bg-danger); color: var(--text-danger);
+    padding: 13px 44px 13px 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
+    position: relative;
+    font-size: 13.5px;
+    border: 1px solid color-mix(in srgb, var(--text-danger) 25%, transparent);
+  }
+  #error-banner button {
+    position: absolute; right: 6px; top: 6px;
+    background: none; border: none; font-size: 18px;
+    color: var(--text-danger); cursor: pointer;
+    width: 28px; height: 28px; border-radius: var(--radius-sm);
+    line-height: 1;
+  }
+  #error-banner button:hover { background: rgba(0,0,0,0.06); }
+
+  /* ---------- Drop zone ---------- */
+  .drop-zone {
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    background: var(--bg-elevated);
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--text-info);
+    background: var(--bg-info);
+  }
+  .drop-zone i.drop-icon {
+    font-size: 32px; color: var(--text-faint);
+    display: block; margin-bottom: 14px;
+  }
+  .drop-zone .drop-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .drop-zone .drop-sub { font-size: 13px; color: var(--text-secondary); }
+
+  /* ---------- File chips ---------- */
+  #file-list { margin: 1rem 0; min-height: 28px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .file-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 11px; background: var(--bg-secondary);
+    border: 1px solid var(--border); border-radius: 100px;
+    font-size: 12.5px; color: var(--text-secondary);
+  }
+  .file-chip.invalid { background: var(--bg-danger); color: var(--text-danger); border-color: transparent; }
+
+  /* ---------- Buttons ---------- */
+  button {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-elevated); color: var(--text);
+    font-family: inherit; font-size: 13.5px; font-weight: 500;
+    cursor: pointer; transition: background 0.15s ease, transform 0.05s ease;
+  }
+  button:hover { background: var(--bg-secondary); }
+  button:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: var(--accent); color: var(--accent-contrast);
+    border-color: var(--accent); width: 100%; justify-content: center;
+    padding: 11px; font-size: 14px; font-weight: 600;
+  }
+  .btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, black); }
+
+  /* ---------- Processing ---------- */
+  #section-processing { display: none; }
+  .processing-box { text-align: center; padding: 2.5rem 0 1.5rem; }
+  .spin { animation: spin 0.9s linear infinite; }
+  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .processing-icon { font-size: 28px; color: var(--text-info); display: block; margin-bottom: 16px; }
+  #processing-status { font-size: 14px; color: var(--text-secondary); margin-bottom: 14px; }
+  progress {
+    appearance: none; -webkit-appearance: none;
+    width: 80%; height: 8px; border-radius: 8px; overflow: hidden;
+    background: var(--bg-secondary); border: none;
+  }
+  progress::-webkit-progress-bar { background: var(--bg-secondary); border-radius: 8px; }
+  progress::-webkit-progress-value { background: var(--text-info); border-radius: 8px; transition: width 0.2s ease; }
+  progress::-moz-progress-bar { background: var(--text-info); border-radius: 8px; }
+  #progress-percent {
+    font-size: 12px; color: var(--text-secondary); margin-top: 10px;
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Results ---------- */
+  #section-results { display: none; }
+  .results-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
+  }
+  .results-title { font-size: 15px; font-weight: 600; }
+  .results-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .metric-card {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 1rem 1.1rem;
+    box-shadow: var(--shadow-card);
+    border-left: 3px solid var(--tier-color, var(--border));
+  }
+  .metric-card.tier-approved { --tier-color: var(--text-success); }
+  .metric-card.tier-review { --tier-color: var(--text-warning); }
+  .metric-card.tier-error { --tier-color: var(--text-danger); }
+  .metric-label { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric-value { font-size: 26px; font-weight: 600; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .metric-card.tier-approved .metric-value { color: var(--text-success); }
+  .metric-card.tier-review .metric-value { color: var(--text-warning); }
+  .metric-card.tier-error .metric-value { color: var(--text-danger); }
+
+  .table-wrap {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-card);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  th {
+    text-align: left; padding: 10px 14px; font-size: 10.5px; font-weight: 600;
+    color: var(--text-secondary); border-bottom: 1px solid var(--border);
+    text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg-secondary);
+  }
+  td {
+    padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr.data-row { border-left: 3px solid transparent; transition: background 0.1s ease; }
+  tr.data-row:hover td { background: var(--bg-secondary); }
+  tr.row-approved { border-left-color: var(--text-success); }
+  tr.row-review { border-left-color: var(--text-warning); }
+  tr.row-error { border-left-color: var(--text-danger); }
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 100px; font-size: 12px; font-weight: 600;
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  }
+  .badge-ok { background: var(--bg-success); color: var(--text-success); }
+  .badge-warn { background: var(--bg-warning); color: var(--text-warning); }
+  .badge-err { background: var(--bg-danger); color: var(--text-danger); }
+
+  .empty-state { text-align: center; color: var(--text-faint); padding: 2.5rem 1rem; font-size: 13.5px; }
+  .empty-state i { font-size: 22px; display: block; margin-bottom: 10px; }
+</style>
 </head>
 <body>
 
-<div class="header">
-  <div class="logo-row">
-    <div class="logo-icon"><i class="ti ti-file-invoice" style="font-size:18px;color:var(--text-info)"></i></div>
-    <div><p style="font-size:15px;font-weight:500">Invoice processor</p><p style="font-size:12px;color:var(--text-secondary)">Extract, verify, and export invoice data to CSV</p></div>
+<div class="shell">
+
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-mark"><i class="ti ti-file-invoice"></i></div>
+      <div>
+        <div class="brand-title">Invoice processor</div>
+        <div class="brand-sub">Extract, verify, and export invoice data</div>
+      </div>
+    </div>
+    <span class="live-badge"><span class="live-dot"></span> Live</span>
   </div>
-  <span class="badge badge-ok" style="font-size:11px"><i class="ti ti-circle-filled" style="font-size:8px"></i> Live</span>
-</div>
 
-<!-- Bannière d'erreur visible -->
-<div id="error-banner" style="display: none; background: var(--bg-danger); color: var(--text-danger); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 1rem; position: relative;">
-  <span id="error-message"></span>
-  <button onclick="closeError()" style="position: absolute; right: 8px; top: 8px; background: none; border: none; font-size: 16px; cursor: pointer;">&times;</button>
-</div>
-
-<!-- Upload -->
-<div id="section-upload">
-  <div id="drop-zone" class="drop-zone" onclick="document.getElementById('file-input').click()">
-    <i class="ti ti-cloud-upload" style="font-size:36px;color:var(--text-secondary);display:block;margin-bottom:12px"></i>
-    <p style="font-size:15px;font-weight:500;margin-bottom:6px">Drop invoices here</p>
-    <p style="font-size:13px;color:var(--text-secondary)">PDF, JPG, PNG, WEBP · single or batch · up to 10 MB</p>
-    <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none">
+  <div id="error-banner" role="alert">
+    <span id="error-message"></span>
+    <button onclick="closeError()" aria-label="Dismiss">&times;</button>
   </div>
-  <div id="file-list" style="margin:1rem 0;min-height:28px"></div>
-  <button id="btn-process" onclick="handleProcess()" style="display:none;width:100%;justify-content:center;padding:10px;font-size:14px;font-weight:500"><i class="ti ti-bolt"></i> Process invoices</button>
-</div>
 
-<!-- Processing -->
-<div id="section-processing">
-  <div style="text-align:center;padding:1.5rem 0">
-    <i class="ti ti-loader-2 spin" style="font-size:30px;color:var(--text-secondary);display:block;margin-bottom:14px"></i>
-    <p id="processing-status" style="font-size:14px;color:var(--text-secondary);margin-bottom:12px">Processing...</p>
-    <progress id="progress-bar" value="0" max="100" style="width:80%; height:8px; border-radius:4px;"></progress>
-    <p id="progress-percent" style="font-size:12px;color:var(--text-secondary);margin-top:8px">0%</p>
+  <!-- Upload -->
+  <div id="section-upload">
+    <div id="drop-zone" class="drop-zone" onclick="document.getElementById('file-input').click()" tabindex="0" role="button" aria-label="Choose files to upload">
+      <i class="ti ti-cloud-upload drop-icon"></i>
+      <p class="drop-title">Drop invoices here</p>
+      <p class="drop-sub">PDF, JPG, PNG, WEBP · single or batch · up to 10 MB each</p>
+      <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none">
+    </div>
+    <div id="file-list"></div>
+    <button id="btn-process" class="btn-primary" onclick="handleProcess()" style="display:none">
+      <i class="ti ti-bolt"></i> Process invoices
+    </button>
   </div>
-</div>
 
-<!-- Results -->
-<div id="section-results">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
-    <p style="font-size:15px;font-weight:500">Results</p>
-    <div style="display:flex;gap:8px">
-      <button onclick="handleDownload('detailed')"><i class="ti ti-download"></i> Download CSV (Detailed)</button>
-      <button onclick="handleDownload('summary')"><i class="ti ti-file-spreadsheet"></i> Download CSV (Summary)</button>
-      <button onclick="handleReset()"><i class="ti ti-refresh"></i> New batch</button>
+  <!-- Processing -->
+  <div id="section-processing">
+    <div class="processing-box">
+      <i class="ti ti-loader-2 spin processing-icon"></i>
+      <p id="processing-status" aria-live="polite">Processing...</p>
+      <progress id="progress-bar" value="0" max="100"></progress>
+      <p id="progress-percent" aria-live="polite">0%</p>
     </div>
   </div>
-  <div class="metric-grid">
-    <div class="metric-card"><p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Approved</p><p id="count-approved" style="font-size:26px;font-weight:500;color:var(--text-success)">0</p></div>
-    <div class="metric-card"><p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Needs review</p><p id="count-review" style="font-size:26px;font-weight:500;color:var(--text-warning)">0</p></div>
-    <div class="metric-card"><p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Errors</p><p id="count-errors" style="font-size:26px;font-weight:500;color:var(--text-danger)">0</p></div>
+
+  <!-- Results -->
+  <div id="section-results">
+    <div class="results-header">
+      <p class="results-title">Results</p>
+      <div class="results-actions">
+        <button onclick="handleDownload('detailed')"><i class="ti ti-download"></i> Detailed CSV</button>
+        <button onclick="handleDownload('summary')"><i class="ti ti-file-spreadsheet"></i> Summary CSV</button>
+        <button onclick="handleReset()"><i class="ti ti-refresh"></i> New batch</button>
+      </div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-card tier-approved">
+        <p class="metric-label">Approved</p>
+        <p id="count-approved" class="metric-value">0</p>
+      </div>
+      <div class="metric-card tier-review">
+        <p class="metric-label">Needs review</p>
+        <p id="count-review" class="metric-value">0</p>
+      </div>
+      <div class="metric-card tier-error">
+        <p class="metric-label">Errors</p>
+        <p id="count-errors" class="metric-value">0</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:26%">File</th>
+            <th style="width:20%">Vendor</th>
+            <th style="width:16%">Total</th>
+            <th style="width:20%">Category</th>
+            <th style="width:18%">Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
   </div>
-  <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-    <table><thead><tr><th style="width:25%">File</th><th style="width:20%">Vendor</th><th style="width:15%">Total</th><th style="width:20%">Category</th><th style="width:20%">Confidence</th></tr></thead><tbody id="results-body"></tbody></table>
-  </div>
+
 </div>
 
 <script>
   const state = { files: [], jobId: null, polling: null, results: [] };
   const THRESHOLD = 0.75, FLOOR = 0.2;
+  const STORAGE_KEY = 'invoiceProcessorJobId';
   const $ = id => document.getElementById(id);
   const show = id => $(id).style.display = 'block';
   const hide = id => $(id).style.display = 'none';
-
   const allowed = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
 
-  // Helper to escape HTML
-  function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+  }
 
-  // File validation and display
   function setFiles(files) {
     const invalid = files.filter(f => !allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
     const valid = files.filter(f => allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
     if (invalid.length) {
-      showError(`Format non supporté: ${invalid.map(f => f.name).join(', ')}. Fichiers ignorés.`);
+      showError(`Unsupported format: ${invalid.map(f => f.name).join(', ')}. These files were skipped.`);
+    }
+    if (valid.length > 20) {
+      showError(`${valid.length} files selected — large batches can take around ${Math.ceil(valid.length / 15)} minute(s) due to API rate limits.`, false);
     }
     state.files = valid;
     const fileListHtml = valid.map(f => `<span class="file-chip"><i class="ti ti-file"></i>${escapeHtml(f.name)}</span>`).join('');
-    const invalidHtml = invalid.map(f => `<span class="file-chip" style="background:var(--bg-danger);color:var(--text-danger);"><i class="ti ti-x"></i>${escapeHtml(f.name)} (non supporté)</span>`).join('');
+    const invalidHtml = invalid.map(f => `<span class="file-chip invalid"><i class="ti ti-x"></i>${escapeHtml(f.name)}</span>`).join('');
     $('file-list').innerHTML = fileListHtml + invalidHtml;
     $('btn-process').style.display = valid.length ? 'flex' : 'none';
     if (valid.length === 0 && invalid.length > 0) {
-      showError("Aucun fichier valide sélectionné. Formats acceptés : PDF, JPG, PNG, WEBP.");
+      showError('No valid files selected. Accepted formats: PDF, JPG, PNG, WEBP.');
     }
   }
 
-  // Event listeners
   $('file-input').addEventListener('change', e => setFiles([...e.target.files]));
   const dz = $('drop-zone');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
   dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); setFiles([...e.dataTransfer.files]); });
+  dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file-input').click(); } });
 
-  async function handleProcess() { hide('section-upload'); show('section-processing'); if (state.files.length === 1) await processSingle(); else await processBatch(); }
+  async function handleProcess() {
+    hide('section-upload'); show('section-processing');
+    if (state.files.length === 1) await processSingle(); else await processBatch();
+  }
+
   async function processSingle() {
     $('processing-status').textContent = 'Extracting invoice data...';
     const form = new FormData(); form.append('file', state.files[0]);
-    try { const res = await fetch('/process', { method: 'POST', body: form }); if (!res.ok) throw new Error(await res.text()); state.results = [await res.json()]; showResults(); } catch (e) { showError(e.message); }
+    try {
+      const res = await fetch('/process', { method: 'POST', body: form });
+      if (!res.ok) throw new Error(await res.text());
+      state.results = [await res.json()];
+      showResults();
+    } catch (e) { showError(e.message); hide('section-processing'); show('section-upload'); }
   }
+
   async function processBatch() {
     $('processing-status').textContent = `Uploading ${state.files.length} files...`;
     const form = new FormData(); state.files.forEach(f => form.append('files', f));
-    try { const res = await fetch('/batch', { method: 'POST', body: form }); if (!res.ok) throw new Error(await res.text()); const { job_id } = await res.json(); state.jobId = job_id; pollProgress(); } catch (e) { showError(e.message); }
+    try {
+      const res = await fetch('/batch', { method: 'POST', body: form });
+      if (!res.ok) throw new Error(await res.text());
+      const { job_id } = await res.json();
+      state.jobId = job_id;
+      localStorage.setItem(STORAGE_KEY, job_id);
+      pollProgress();
+    } catch (e) { showError(e.message); hide('section-processing'); show('section-upload'); }
   }
+
   function pollProgress() {
     state.polling = setInterval(async () => {
       try {
-        const res = await fetch(`/progress/${state.jobId}`); if (!res.ok) throw new Error('Progress check failed');
+        const res = await fetch(`/progress/${state.jobId}`);
+        if (!res.ok) throw new Error('Progress check failed');
         const { status, total, processed } = await res.json();
         $('processing-status').textContent = `Processing batch · ${processed} of ${total} files`;
         const percent = total > 0 ? (processed / total) * 100 : 0;
-        const progressBar = $('progress-bar'); if (progressBar) { progressBar.value = percent; progressBar.max = 100; }
-        const percentSpan = $('progress-percent'); if (percentSpan) percentSpan.textContent = `${Math.round(percent)}%`;
+        $('progress-bar').value = percent;
+        $('progress-percent').textContent = `${Math.round(percent)}%`;
+
         if (status === 'done') {
           clearInterval(state.polling);
-          const resultsRes = await fetch(`/results/${state.jobId}`); if (!resultsRes.ok) throw new Error('Could not fetch results');
-          const { results,errors } = await resultsRes.json(); state.results = [...results, ...errors.map(e => ({ filename: e.filename, error: e.error}))]; showResults();
-        } else if (status === 'failed') { clearInterval(state.polling); showError('Batch failed — check CSV for error details'); }
-      } catch (e) { clearInterval(state.polling); showError(e.message); }
+          localStorage.removeItem(STORAGE_KEY);
+          const resultsRes = await fetch(`/results/${state.jobId}`);
+          if (!resultsRes.ok) throw new Error('Could not fetch results');
+          const { results, errors } = await resultsRes.json();
+          state.results = [...results, ...errors.map(e => ({ filename: e.filename, error: e.error }))];
+          showResults();
+        } else if (status === 'failed') {
+          clearInterval(state.polling);
+          localStorage.removeItem(STORAGE_KEY);
+          showError('Batch failed — check the Excel export for error details.');
+          hide('section-processing'); show('section-upload');
+        }
+      } catch (e) {
+        clearInterval(state.polling);
+        localStorage.removeItem(STORAGE_KEY);
+        showError(e.message);
+        handleReset();
+      }
     }, 1000);
   }
-  function badge(score) { const pct = Math.round(score * 100); if (score >= THRESHOLD) return `<span class="badge badge-ok"><i class="ti ti-check"></i>${pct}%</span>`; if (score >= FLOOR) return `<span class="badge badge-warn"><i class="ti ti-alert-triangle"></i>${pct}%</span>`; return `<span class="badge badge-err"><i class="ti ti-x"></i>${pct}%</span>`; }
+
+  function badge(score) {
+    const pct = Math.round(score * 100);
+    if (score >= THRESHOLD) return `<span class="badge badge-ok"><i class="ti ti-check"></i>${pct}%</span>`;
+    if (score >= FLOOR) return `<span class="badge badge-warn"><i class="ti ti-alert-triangle"></i>${pct}%</span>`;
+    return `<span class="badge badge-err"><i class="ti ti-x"></i>${pct}%</span>`;
+  }
+
   function showResults() {
     hide('section-processing'); show('section-results');
     let approved = 0, review = 0, errors = 0;
     const rows = state.results.map(r => {
-      if (r.error) { errors++; return `<tr><td title="${escapeHtml(r.filename)}">${escapeHtml(r.filename||'—')}</td><td colspan="3" style="color:var(--text-danger)">${escapeHtml(r.error)}</td><td>—</td></tr>`; }
-      const s = r.confidence || 0; if (s >= THRESHOLD) approved++; else if (s >= FLOOR) review++; else errors++;
+      if (r.error) {
+        errors++;
+        return `<tr class="data-row row-error"><td title="${escapeHtml(r.filename)}">${escapeHtml(r.filename || '—')}</td><td colspan="3" style="color:var(--text-danger)">${escapeHtml(r.error)}</td><td>—</td></tr>`;
+      }
+      const s = r.confidence || 0;
+      let tier = 'row-error';
+      if (s >= THRESHOLD) { approved++; tier = 'row-approved'; }
+      else if (s >= FLOOR) { review++; tier = 'row-review'; }
+      else { errors++; }
       const total = r.total_amount_due != null ? `${r.currency || ''} ${Number(r.total_amount_due).toFixed(2)}` : '—';
-      return `<tr><td title="${escapeHtml(r.filename)}">${escapeHtml(r.filename||'—')}</td><td>${escapeHtml(r.vendor_name||'—')}</td><td>${escapeHtml(total)}</td><td>${escapeHtml(r.category||'—')}</td><td>${badge(s)}</td></tr>`;
+      return `<tr class="data-row ${tier}">
+        <td title="${escapeHtml(r.filename)}">${escapeHtml(r.filename || '—')}</td>
+        <td>${escapeHtml(r.vendor_name || '—')}</td>
+        <td class="num">${escapeHtml(total)}</td>
+        <td>${escapeHtml(r.category || '—')}</td>
+        <td>${badge(s)}</td>
+      </tr>`;
     }).join('');
-    $('results-body').innerHTML = rows || '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:2rem">No results</td></tr>';
-    $('count-approved').textContent = approved; $('count-review').textContent = review; $('count-errors').textContent = errors;
+    $('results-body').innerHTML = rows || `<tr><td colspan="5"><div class="empty-state"><i class="ti ti-file-off"></i>No results</div></td></tr>`;
+    $('count-approved').textContent = approved;
+    $('count-review').textContent = review;
+    $('count-errors').textContent = errors;
   }
-  async function handleDownload(type = 'detailed') { if (state.jobId) { window.location.href = type === 'summary' ? `/export/summary/${state.jobId}` : `/export/${state.jobId}`; } else if (state.results.length) { const keys = Object.keys(state.results[0]); const csv = [keys.join(','), ...state.results.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'invoice_export.csv'; a.click(); } }
-  function showError(msg, autoHide = true) { const banner = $('error-banner'); const msgSpan = $('error-message'); if (!banner || !msgSpan) { console.error("Bannière d'erreur introuvable"); alert(msg); return; } msgSpan.innerText = msg; banner.style.display = 'block'; if (autoHide) { setTimeout(() => { banner.style.display = 'none'; }, 8000); } }
+
+  async function handleDownload(type = 'detailed') {
+    if (state.jobId) {
+      window.location.href = type === 'summary' ? `/export/summary/${state.jobId}` : `/export/${state.jobId}`;
+    } else if (state.results.length) {
+      const keys = Object.keys(state.results[0]);
+      const csv = [keys.join(','), ...state.results.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = 'invoice_export.csv';
+      a.click();
+    }
+  }
+
+  function showError(msg, autoHide = true) {
+    const banner = $('error-banner'); const msgSpan = $('error-message');
+    if (!banner || !msgSpan) { console.error('Error banner not found'); alert(msg); return; }
+    msgSpan.innerText = msg;
+    banner.style.display = 'block';
+    if (autoHide) setTimeout(() => { banner.style.display = 'none'; }, 8000);
+  }
   function closeError() { const banner = $('error-banner'); if (banner) banner.style.display = 'none'; }
-  function handleReset() { state.files = []; state.jobId = null; state.results = []; if (state.polling) clearInterval(state.polling); $('file-list').innerHTML = ''; $('btn-process').style.display = 'none'; $('results-body').innerHTML = ''; hide('section-results'); show('section-upload'); }
+
+  function handleReset() {
+    state.files = []; state.jobId = null; state.results = [];
+    localStorage.removeItem(STORAGE_KEY);
+    if (state.polling) clearInterval(state.polling);
+    $('file-list').innerHTML = '';
+    $('btn-process').style.display = 'none';
+    $('results-body').innerHTML = '';
+    hide('section-results'); show('section-upload');
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedJobId = localStorage.getItem(STORAGE_KEY);
+    if (savedJobId) {
+      state.jobId = savedJobId;
+      hide('section-upload'); show('section-processing');
+      pollProgress();
+    }
+  });
 </script>
 </body>
 </html>

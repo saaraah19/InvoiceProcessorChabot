@@ -11,6 +11,13 @@ from slowapi.errors import RateLimitExceeded
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from fastapi.responses import FileResponse
 from config import GEMINI_MODEL_NAME, CONFIDENCE_THRESHOLD
+import logging
+from utils import sanitize_cell
+from starlette.background import BackgroundTask
+from config import GEMINI_MODEL_NAME, CONFIDENCE_THRESHOLD
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -63,6 +70,7 @@ async def process_batch(
         files: list[UploadFile] = File(...)
 ):
     job_id = str(uuid.uuid4())
+    logger.info(f"Batch {job_id}: received {len(files)} files")
     jobs.create_job(job_id, total_files=len(files))
     batch_dir = UPLOAD_DIR / job_id
     batch_dir.mkdir()
@@ -80,7 +88,6 @@ def get_status(job_id: str):
     if not row:
         raise HTTPException(status_code=404, detail="Job not found")
     return {"job_id": job_id, "status": row["status"]}
-
 
 # ─── EXPORT ──────────────────────────────────────────────────
 @app.get("/export/{job_id}")
@@ -103,8 +110,12 @@ def export_csv(job_id: str):
             writer = csv.DictWriter(f, fieldnames=["filename", "vendor", "total", "category", "confidence"])
             writer.writeheader()
 
-    return FileResponse(output_path, media_type="text/csv", filename=f"invoices_{job_id}.csv")
-
+    return FileResponse(
+        output_path,
+        media_type="text/csv",
+        filename=f"invoices_{job_id}.csv",
+        background=BackgroundTask(lambda: Path(output_path).unlink(missing_ok=True))
+    )
 
 @app.get("/results/{job_id}")
 def get_results(job_id: str):
@@ -165,10 +176,12 @@ def export_summary_csv(job_id: str):
                 "confidence": inv.get("confidence", "")
             })
 
+    # export_summary_csv
     return FileResponse(
         output_path,
         media_type="text/csv",
-        filename=f"invoices_summary_{job_id}.csv"
+        filename=f"invoices_summary_{job_id}.csv",
+        background=BackgroundTask(lambda: Path(output_path).unlink(missing_ok=True))
     )
 
 @app.get("/export/excel/{job_id}")
@@ -182,39 +195,32 @@ def export_excel(job_id: str):
     results = json.loads(row["results"]) if row["results"] else []
     errors = json.loads(row["errors"]) if row["errors"] else []
 
-    # Separate empty invoices (no meaningful data) and treat them as errors
     meaningful = []
     for inv in results:
-        # Check critical fields: invoice_number, vendor_name, total_amount_due
         if inv.get("invoice_number") or inv.get("vendor_name") or inv.get("total_amount_due"):
             meaningful.append(inv)
         else:
-            # Add to errors list with filename if available
             filename = inv.get("filename", "unknown")
             errors.append({
                 "filename": filename,
                 "error": "No invoice data extracted – file may not be an invoice"
             })
 
-    # Split meaningful invoices by confidence
     approved = [inv for inv in meaningful if inv.get("confidence", 0) >= CONFIDENCE_THRESHOLD]
     review = [inv for inv in meaningful if inv.get("confidence", 0) < CONFIDENCE_THRESHOLD]
 
-    # Create Excel workbook
     wb = openpyxl.Workbook()
-    wb.remove(wb.active)  # remove default sheet
+    wb.remove(wb.active)
 
-    # Headers for invoice sheets
     headers = [
         "invoice_number", "vendor_name", "invoice_date",
         "total_amount_due", "currency", "category", "confidence"
     ]
 
-    # Sheet 1: Approuvé (high confidence)
     ws_approved = wb.create_sheet("Approuvé")
     ws_approved.append(headers)
     for inv in approved:
-        ws_approved.append([
+        ws_approved.append([sanitize_cell(v) for v in [
             inv.get("invoice_number", ""),
             inv.get("vendor_name", ""),
             inv.get("invoice_date", ""),
@@ -222,13 +228,12 @@ def export_excel(job_id: str):
             inv.get("currency", ""),
             inv.get("category", ""),
             inv.get("confidence", "")
-        ])
+        ]])
 
-    # Sheet 2: À revoir (low/medium confidence)
     ws_review = wb.create_sheet("À revoir")
     ws_review.append(headers)
     for inv in review:
-        ws_review.append([
+        ws_review.append([sanitize_cell(v) for v in [
             inv.get("invoice_number", ""),
             inv.get("vendor_name", ""),
             inv.get("invoice_date", ""),
@@ -236,25 +241,39 @@ def export_excel(job_id: str):
             inv.get("currency", ""),
             inv.get("category", ""),
             inv.get("confidence", "")
-        ])
+        ]])
 
-    # Sheet 3: Erreurs (failed extractions + empty invoices + DB errors)
     ws_errors = wb.create_sheet("Erreurs")
     ws_errors.append(["filename", "error"])
     if errors:
         for err in errors:
-            ws_errors.append([err.get("filename", ""), err.get("error", "")])
+            ws_errors.append([sanitize_cell(err.get("filename", "")), sanitize_cell(err.get("error", ""))])
     else:
         ws_errors.append(["No errors", ""])
 
-    # Save and return
+    # --- NEW: header styling ---
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    for ws in (ws_approved, ws_review, ws_errors):
+        for cell in ws[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+        ws.freeze_panes = "A2"
+        for col_cells in ws.columns:
+            length = max(len(str(c.value)) for c in col_cells)
+            ws.column_dimensions[col_cells[0].column_letter].width = min(max(length + 2, 10), 40)
+    # --- end new ---
+
     output_path = OUTPUT_DIR / f"{job_id}.xlsx"
     wb.save(output_path)
+    logger.info(f"Job {job_id}: Excel export generated ({len(approved)} approved, {len(review)} to review, {len(errors)} errors)")
 
     return FileResponse(
         output_path,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        filename=f"invoices_{job_id}.xlsx"
+        filename=f"invoices_{job_id}.xlsx",
+        background=BackgroundTask(lambda: Path(output_path).unlink(missing_ok=True))
     )
+
 
 app = ProxyHeadersMiddleware(app, trusted_hosts="*")

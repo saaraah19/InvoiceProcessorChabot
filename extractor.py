@@ -1,9 +1,9 @@
-import os,time
+import os, time
 from pathlib import Path
 from config import SUPPORTED_FORMATS, MAX_UPLOAD_SIZE_MB, MIME_TYPES, CRITICAL_FIELDS
 from generator import client, call_gemini
 from google.genai import types
-from model import InvoiceData   # <-- moved up
+from model import InvoiceData, ExtractedInvoice
 
 MAGIC_BYTES = {
     b'%PDF': 'application/pdf',
@@ -13,13 +13,18 @@ MAGIC_BYTES = {
 }
 def validate_magic_bytes(file_path: str):
     with open(file_path, 'rb') as f:
-        header = f.read(4)
-    # Check against known magic signatures
+        header = f.read(12)
+
+    # WEBP: RIFF container with "WEBP" at bytes 8-11 — a plain RIFF
+    # prefix alone (e.g. .wav, .avi) is not enough to qualify.
+    if header.startswith(b'RIFF') and header[8:12] == b'WEBP':
+        return True
+
     for sig, mime in MAGIC_BYTES.items():
         if header.startswith(sig):
             return True
-    raise ValueError(f"File content does not match a supported format (magic bytes: {header.hex()})")
 
+    raise ValueError(f"File content does not match a supported format (magic bytes: {header.hex()})")
 
 def validate_file(file_path: str):
     file = Path(file_path)
@@ -44,7 +49,7 @@ def prepare_for_gemini(file_path: str):
     uploaded_file = None
     if file.suffix.lower() == ".pdf" or file_size_mb > 4:
         # Upload to File API
-        uploaded_file = client.files.upload(path=file_path)
+        uploaded_file = client.files.upload(file=file_path)
 
         # Wait for processing (Gemini needs time to make the file ready)
         timeout = 30  # seconds
@@ -76,12 +81,13 @@ def prepare_for_gemini(file_path: str):
 def calculate_confidence(invoice: InvoiceData) -> float:
     filled = sum(1 for field in CRITICAL_FIELDS if getattr(invoice, field) is not None)
     completeness = filled / len(CRITICAL_FIELDS)
-    if all([invoice.subtotal, invoice.tax_total, invoice.total_amount_due]):
+
+    if all(v is not None for v in (invoice.subtotal, invoice.tax_total, invoice.total_amount_due)):
         expected = invoice.subtotal + invoice.tax_total
         if abs(expected - invoice.total_amount_due) > 0.05:
             return min(completeness, 0.5)
-    return completeness
 
+    return completeness
 
 def extract_invoice(file_path: str) -> InvoiceData:
     validate_file(file_path)
@@ -120,8 +126,12 @@ Do not hallucinate. If a section is illegible, leave it null.
 """)
 
     try:
-        invoice = call_gemini([text_part, content], InvoiceData)
-        invoice.filename = Path(file_path).name
+        extracted = call_gemini([text_part, content], ExtractedInvoice)
+        invoice = InvoiceData(
+            filename=Path(file_path).name,
+            confidence=0.0,  # placeholder, computed below
+            **extracted.model_dump(by_alias=False)
+        )
         invoice.confidence = calculate_confidence(invoice)
         return invoice
     finally:
