@@ -98,6 +98,8 @@ def extract_invoice(file_path: str) -> InvoiceData:
 You are an invoice extraction expert.
 
 Extract the following fields from this invoice document:
+- invoice_description (one sentence summarizing what this invoice is for)
+- category (classify into exactly one of: "Office Supplies", "Software & Subscriptions", "Travel", "Professional Services", "Utilities", "Meals & Entertainment", "Other")
 - vendor_name (company name of the seller)
 - vendor_tax_id (tax identification number, if present)
 - vendor_address (full address)
