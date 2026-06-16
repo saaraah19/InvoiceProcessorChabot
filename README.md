@@ -10,7 +10,7 @@
 **3. Review results, tiered by confidence**
 ![Results](./screenshots/results.png)
 
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://your-app.railway.app)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)]([https://your-app.railway.app](https://invoiceprocessorchabot-production.up.railway.app/))
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-8E75B2)
